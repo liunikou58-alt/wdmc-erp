@@ -1,0 +1,12 @@
+{
+  "build": {
+    "type": "node",
+    "node": {
+      "entry": "server/index.js"
+    }
+  },
+  "start": {
+    "command": "node server/index.js"
+  },
+  "ports": [3002]
+}

@@ -1,0 +1,107 @@
+[
+  {
+    "id": "2bb36bb6-7fa6-43ed-a883-1bd304ad8c12",
+    "name": "📋 報價管理",
+    "icon": "📋",
+    "order": 1,
+    "parent_id": null
+  },
+  {
+    "id": "b55338f8-4c99-41b3-a283-026dcb94c653",
+    "name": "👥 客戶廠商",
+    "icon": "👥",
+    "order": 2,
+    "parent_id": null
+  },
+  {
+    "id": "1872ad6b-4918-494d-98ee-50a9a9b03e97",
+    "name": "📦 物品管理",
+    "icon": "📦",
+    "order": 3,
+    "parent_id": null
+  },
+  {
+    "id": "edbe6738-e382-4e96-959f-c5323827257a",
+    "name": "🛒 採購管理",
+    "icon": "🛒",
+    "order": 4,
+    "parent_id": null
+  },
+  {
+    "id": "2caf9b78-0c4d-44c4-b04d-e6c84af05e1b",
+    "name": "💵 零用金/請付款",
+    "icon": "💵",
+    "order": 5,
+    "parent_id": null
+  },
+  {
+    "id": "0633a7b3-0863-4a84-a78c-ccc5fdeed219",
+    "name": "📝 勞報單",
+    "icon": "📝",
+    "order": 6,
+    "parent_id": null
+  },
+  {
+    "id": "e0686623-baa0-4392-8e54-4a494343d7c7",
+    "name": "🔧 工具箱",
+    "icon": "🔧",
+    "order": 7,
+    "parent_id": null
+  },
+  {
+    "id": "6c40c5d6-4169-4e34-9caa-a4bfcc0743b6",
+    "name": "📂 活動資料",
+    "icon": "📂",
+    "order": 8,
+    "parent_id": null
+  },
+  {
+    "id": "186c0153-86b5-4e27-8335-697d62270c56",
+    "name": "📊 專案管理",
+    "icon": "📊",
+    "order": 9,
+    "parent_id": null
+  },
+  {
+    "id": "cc9be70c-f242-48fc-aabd-a66e469fec97",
+    "name": "📈 活動損益",
+    "icon": "📈",
+    "order": 10,
+    "parent_id": null
+  },
+  {
+    "id": "98372aa4-0744-4449-9cb4-4b2273cd8082",
+    "name": "🔩 硬體管理",
+    "icon": "🔩",
+    "order": 11,
+    "parent_id": null
+  },
+  {
+    "id": "9b64f44b-0eb5-4145-b988-273dc571dd5f",
+    "name": "🧾 會計檢視",
+    "icon": "🧾",
+    "order": 12,
+    "parent_id": null
+  },
+  {
+    "id": "ca9876b6-e7b4-48f9-ae84-d9fcc4c4b721",
+    "name": "📋 硬體庫存",
+    "icon": "📋",
+    "order": 13,
+    "parent_id": null
+  },
+  {
+    "id": "a60bde1e-7f90-4e1e-b29b-049854158b53",
+    "name": "💰 零用金記錄",
+    "icon": "💰",
+    "order": 14,
+    "parent_id": null
+  },
+  {
+    "id": "4a3ffc0c-9b34-4437-a9e4-412d7d05a1ed",
+    "name": "⚙️ 系統管理",
+    "icon": "⚙️",
+    "order": 15,
+    "parent_id": null
+  }
+]
