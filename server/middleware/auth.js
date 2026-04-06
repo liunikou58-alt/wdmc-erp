@@ -1,12 +1,12 @@
-/**
+﻿/**
  * WDMC-ERP — Auth 中介層（升級版）
  * 使用共用 RBAC 模組
  */
 const jwt = require('jsonwebtoken');
 const JWT_SECRET = process.env.JWT_SECRET || 'wdmc-erp-secret-2026';
 
-const { createRBAC } = require('../../../shared/rbac-middleware');
-const { hasRoleLevel } = require('../../../shared/permissions');
+const { createRBAC } = require('../../shared/rbac-middleware');
+const { hasRoleLevel } = require('../../shared/permissions');
 
 function auth(req, res, next) {
   const h = req.headers.authorization;
