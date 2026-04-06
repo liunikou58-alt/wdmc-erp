@@ -1,4 +1,4 @@
-/**
+﻿/**
  * WDMC-ERP Auth Routes（升級版 RBAC）
  */
 const express = require('express');
@@ -7,7 +7,7 @@ const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
 const { auth, JWT_SECRET, logActivity, requirePermission, requireMinRole } = require('../middleware/auth');
-const { ROLE_LABELS, ROLE_LEVELS, DEPARTMENT_MAP, hasRoleLevel } = require('../../../shared/permissions');
+const { ROLE_LABELS, ROLE_LEVELS, DEPARTMENT_MAP, hasRoleLevel } = require('../../shared/permissions');
 
 const router = express.Router();
 
@@ -60,7 +60,7 @@ router.get('/roles', auth, (req, res) => {
 
 // GET /api/auth/permissions — 當前使用者權限清單
 router.get('/permissions', auth, (req, res) => {
-  const { ERP_PERMISSIONS, hasPermission } = require('../../../shared/permissions');
+  const { ERP_PERMISSIONS, hasPermission } = require('../../shared/permissions');
   const perms = {};
   for (const [mod, actions] of Object.entries(ERP_PERMISSIONS)) {
     perms[mod] = {};

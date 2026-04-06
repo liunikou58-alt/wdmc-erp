@@ -1,10 +1,10 @@
-/**
+﻿/**
  * WDMC-ERP — 種子資料（升級版 6 角色）
  */
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const db = require('./db');
-const { DEPARTMENT_MAP } = require('../../shared/permissions');
+const { DEPARTMENT_MAP } = require('../shared/permissions');
 
 module.exports = function seed() {
   // 建立部門

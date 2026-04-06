@@ -1,9 +1,9 @@
-/**
+﻿/**
  * WDMC管理中心 資料庫實例
  * 使用共用 adapter，未來只需改 type: 'pg' 即可遷移
  */
 const path = require('path');
-const { createAdapter } = require('../../shared/db-adapter');
+const { createAdapter } = require('../shared/db-adapter');
 
 const db = createAdapter({
   type: process.env.DB_TYPE || 'json',
