@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useLang } from '../LangContext'
 import { api } from '../api'
 
 const TYPE_LABELS = { purchase_order: '📦 採購單', quotation: '📝 報價單', expense: '💳 支出報銷', contract: '📃 合約簽核' };
@@ -12,6 +13,7 @@ const STATUS_MAP = {
 };
 
 export default function Approvals() {
+  const { t } = useLang();
   const [approvals, setApprovals] = useState([]);
   const [stats, setStats] = useState({});
   const [tab, setTab] = useState('all');
@@ -46,8 +48,8 @@ export default function Approvals() {
   return (
     <>
       <div className="page-header">
-        <div><h1 className="page-title">📋 審批中心</h1><p className="page-subtitle">採購單 / 報價單 / 支出報銷 / 合約簽核</p></div>
-        <button className="btn btn-primary" onClick={() => setShowAdd(true)}>➕ 新增審批</button>
+        <div><h1 className="page-title">{t('page.approvals')}</h1><p className="page-subtitle">採購單 / 報價單 / 支出報銷 / 合約簽核</p></div>
+        <button className="btn btn-primary" onClick={() => setShowAdd(true)}>{t('approvals.add')}</button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 20 }}>

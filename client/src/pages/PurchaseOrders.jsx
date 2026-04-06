@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useLang } from '../LangContext'
 import { api } from '../api'
 
 const FMT = n => `$${Number(n || 0).toLocaleString()}`;
@@ -6,13 +7,14 @@ const PO_STATUSES = ['訂購中', '尚未訂購', '已確認', '已結案'];
 const PAY_METHODS = ['匯款(瓦當麥可）','匯款(瓦當硬體）','現金(瓦當麥可）','現金(瓦當硬體）','刷卡','Michael代墊'];
 const VOUCHER_TYPES = ['發票', '勞報單', '收據', '支出證明單'];
 const ST_COLORS = {
-  '訂購中': { bg: '#fef3c7', color: '#92400e' },
-  '尚未訂購': { bg: '#fee2e2', color: '#991b1b' },
-  '已確認': { bg: '#dcfce7', color: '#166534' },
-  '已結案': { bg: '#f1f5f9', color: '#475569' },
+  '訂購中': { bg: 'var(--c-warning-light)', color: 'var(--c-warning)' },
+  '尚未訂購': { bg: 'var(--c-danger-light)', color: 'var(--c-danger)' },
+  '已確認': { bg: 'var(--c-success-light)', color: 'var(--c-success)' },
+  '已結案': { bg: 'var(--c-bg-elevated)', color: 'var(--c-text-muted)' },
 };
 
 export default function PurchaseOrders() {
+  const { t } = useLang();
   const [pos, setPOs] = useState([]);
   const [stats, setStats] = useState({});
   const [selected, setSelected] = useState(null);
@@ -66,16 +68,16 @@ export default function PurchaseOrders() {
 
   return (<>
     <div className="page-header">
-      <div><h1 className="page-title">🧮 活動採購單</h1><p className="page-subtitle">PO管理 · 廠商連結 · 拋轉請付款 · 連結損益</p></div>
-      <button className="btn btn-primary" onClick={() => { setShowAdd(true); setForm({ status: '訂購中', tax_rate: 0 }); }}>➕ 新增採購單</button>
+      <div><h1 className="page-title">{t('page.purchaseOrders')}</h1><p className="page-subtitle">PO管理 · 廠商連結 · 拋轉請付款 · 連結損益</p></div>
+      <button className="btn btn-primary" onClick={() => { setShowAdd(true); setForm({ status: '訂購中', tax_rate: 0 }); }}>{t('purchaseOrders.add')}</button>
     </div>
 
     {/* KPI */}
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 16 }}>
       {[
         { label: '總採購', value: stats.total || 0, icon: '📦' },
-        { label: '訂購中', value: stats.ordering || 0, icon: '🔄', color: '#f59e0b' },
-        { label: '已確認', value: stats.confirmed || 0, icon: '✅', color: '#10b981' },
+        { label: '訂購中', value: stats.ordering || 0, icon: '🔄', color: 'var(--c-warning)' },
+        { label: '已確認', value: stats.confirmed || 0, icon: '✅', color: 'var(--c-success)' },
         { label: '已結案', value: stats.closed || 0, icon: '🏁' },
         { label: '總金額', value: FMT(stats.total_amount), icon: '💰' },
       ].map((k, i) => (
@@ -110,7 +112,7 @@ export default function PurchaseOrders() {
               <td style={{...TD, fontWeight: 600, maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{po.event_name || '—'}</td>
               <td style={TD}>{po.vendor_name || '—'}</td>
               <td style={{...TD, textAlign:'right'}}>{FMT(po.subtotal)}</td>
-              <td style={{...TD, textAlign:'right', color:'#f59e0b'}}>{FMT(po.tax_amount)}</td>
+              <td style={{...TD, textAlign:'right', color:'var(--c-warning)'}}>{FMT(po.tax_amount)}</td>
               <td style={{...TD, textAlign:'right', fontWeight:700}}>{FMT(po.total)}</td>
               <td style={{...TD, fontSize: 10}}>{po.payment_method || '—'}</td>
               <td style={TD}><span style={{ padding: '2px 8px', borderRadius: 6, fontSize: 10, background: stc.bg, color: stc.color, fontWeight: 600 }}>{po.status}</span></td>
@@ -176,7 +178,7 @@ export default function PurchaseOrders() {
         <div className="card" style={{ padding: 12 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, fontSize: 12 }}>
             <div>小計:</div><div style={{ textAlign: 'right' }}>{FMT(selected.subtotal)}</div>
-            <div>稅額:</div><div style={{ textAlign: 'right', color: '#f59e0b' }}>{FMT(selected.tax_amount)}</div>
+            <div>稅額:</div><div style={{ textAlign: 'right', color: 'var(--c-warning)' }}>{FMT(selected.tax_amount)}</div>
             <div style={{ fontWeight: 700 }}>合計:</div><div style={{ textAlign: 'right', fontWeight: 700, fontSize: 14 }}>{FMT(selected.total)}</div>
           </div>
         </div>

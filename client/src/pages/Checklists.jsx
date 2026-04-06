@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
+import { useLang } from '../LangContext'
 import { api } from '../api'
 
 const TYPES = { execution: '🎯 現場執行', load_in: '🚛 進場', load_out: '📦 退場', safety: '🦺 安全', other: '📋 其他' };
 
 export default function Checklists() {
+  const { t } = useLang();
   const [lists, setLists] = useState([]);
   const [projects, setProjects] = useState([]);
   const [templates, setTemplates] = useState([]);
@@ -59,19 +61,19 @@ export default function Checklists() {
   return (
     <>
       <div className="page-header">
-        <div><h1 className="page-title">✅ 現場執行清單</h1><p className="page-subtitle">進退場 SOP、安全檢查、打勾確認</p></div>
-        <button className="btn btn-primary" onClick={() => setShowAdd(true)}>➕ 新增清單</button>
+        <div><h1 className="page-title">{t('page.checklists')}</h1><p className="page-subtitle">進退場 SOP、安全檢查、打勾確認</p></div>
+        <button className="btn btn-primary" onClick={() => setShowAdd(true)}>{t('checklists.add')}</button>
       </div>
 
       {showAdd && (
         <div className="card" style={{ marginBottom: 16 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 12 }}>
-            <div className="form-group"><label className="form-label">清單名稱 *</label><input className="form-input" value={form.title} onChange={set('title')} /></div>
+            <div className="form-group"><label className="form-label">{t('checklists.listName')}</label><input className="form-input" value={form.title} onChange={set('title')} /></div>
             <div className="form-group"><label className="form-label">專案</label><select className="form-select" value={form.project_id} onChange={set('project_id')}><option value="">-</option>{projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></div>
             <div className="form-group"><label className="form-label">類型</label><select className="form-select" value={form.type} onChange={set('type')}>{Object.entries(TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
             <div className="form-group"><label className="form-label">範本</label><select className="form-select" value={form.template} onChange={set('template')}><option value="">空白</option>{templates.map(t => <option key={t.id} value={t.id}>{t.name} ({t.items.length}項)</option>)}</select></div>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}><button className="btn btn-primary" onClick={add}>建立</button><button className="btn btn-secondary" onClick={() => setShowAdd(false)}>取消</button></div>
+          <div style={{ display: 'flex', gap: 8 }}><button className="btn btn-primary" onClick={add}>{t('common.create2')}</button><button className="btn btn-secondary" onClick={() => setShowAdd(false)}>{t('common.cancel')}</button></div>
         </div>
       )}
 

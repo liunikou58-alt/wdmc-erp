@@ -1,12 +1,12 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
-const { auth, logActivity } = require('../middleware/auth');
+const { auth, logActivity, requirePermission } = require('../middleware/auth');
 
 const router = express.Router();
 
 // 收入列表
-router.get('/revenues', auth, (req, res) => {
+router.get('/revenues', auth, requirePermission('finance', 'view'),(req, res) => {
   const items = db.getAll('revenues').sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   const enriched = items.map(r => {
     const project = r.project_id ? db.getById('projects', r.project_id) : null;
@@ -16,11 +16,16 @@ router.get('/revenues', auth, (req, res) => {
   res.json(enriched);
 });
 
-router.post('/revenues', auth, (req, res) => {
-  const { project_id, customer_id, amount, description, payment_date, status } = req.body;
+router.post('/revenues', auth, requirePermission('finance', 'create'),(req, res) => {
+  const { project_id, customer_id, amount, description, payment_date, status,
+    voucher_date, voucher_no, expected_date, fee, payment_method, settlement_status } = req.body;
   const r = db.insert('revenues', {
     id: uuidv4(), project_id: project_id || null, customer_id: customer_id || null,
     amount: amount || 0, description: description || '', payment_date: payment_date || '',
+    voucher_date: voucher_date || '', voucher_no: voucher_no || '',
+    expected_date: expected_date || '', fee: Number(fee) || 0,
+    payment_method: payment_method || '匯款',
+    settlement_status: settlement_status || 'pending',
     status: status || 'pending', created_by: req.user.id
   });
   logActivity(db, project_id, req.user.id, 'create_revenue', `新增收入 $${amount}`);
@@ -28,7 +33,7 @@ router.post('/revenues', auth, (req, res) => {
 });
 
 // 支出列表
-router.get('/expenses', auth, (req, res) => {
+router.get('/expenses', auth, requirePermission('finance', 'view'),(req, res) => {
   const items = db.getAll('expenses').sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   const enriched = items.map(e => {
     const project = e.project_id ? db.getById('projects', e.project_id) : null;
@@ -38,23 +43,29 @@ router.get('/expenses', auth, (req, res) => {
   res.json(enriched);
 });
 
-router.post('/expenses', auth, (req, res) => {
-  const { project_id, vendor_id, amount, category, description, payment_date, status } = req.body;
+router.post('/expenses', auth, requirePermission('finance', 'create'),(req, res) => {
+  const { project_id, vendor_id, amount, category, description, payment_date, status,
+    voucher_date, voucher_no, expected_date, fee, payment_method, settlement_status } = req.body;
   const e = db.insert('expenses', {
     id: uuidv4(), project_id: project_id || null, vendor_id: vendor_id || null,
     amount: amount || 0, category: category || '', description: description || '',
-    payment_date: payment_date || '', status: status || 'pending', created_by: req.user.id
+    payment_date: payment_date || '',
+    voucher_date: voucher_date || '', voucher_no: voucher_no || '',
+    expected_date: expected_date || '', fee: Number(fee) || 0,
+    payment_method: payment_method || '匯款',
+    settlement_status: settlement_status || 'pending',
+    status: status || 'pending', created_by: req.user.id
   });
   logActivity(db, project_id, req.user.id, 'create_expense', `新增支出 $${amount}`);
   res.status(201).json(e);
 });
 
 // 發票管理
-router.get('/invoices', auth, (req, res) => {
+router.get('/invoices', auth, requirePermission('finance', 'view'),(req, res) => {
   res.json(db.getAll('invoices').sort((a, b) => new Date(b.created_at) - new Date(a.created_at)));
 });
 
-router.post('/invoices', auth, (req, res) => {
+router.post('/invoices', auth, requirePermission('finance', 'create'),(req, res) => {
   const { project_id, customer_id, amount, invoice_number, issue_date, due_date, type } = req.body;
   const inv = db.insert('invoices', {
     id: uuidv4(), project_id: project_id || null, customer_id: customer_id || null,
@@ -65,7 +76,7 @@ router.post('/invoices', auth, (req, res) => {
 });
 
 // 財務總覽
-router.get('/summary', auth, (req, res) => {
+router.get('/summary', auth, requirePermission('finance', 'view'),(req, res) => {
   const revenues = db.getAll('revenues');
   const expenses = db.getAll('expenses');
   const totalRevenue = revenues.reduce((s, r) => s + (r.amount || 0), 0);

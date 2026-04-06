@@ -7,7 +7,7 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
-const { auth, logActivity } = require('../middleware/auth');
+const { auth, logActivity, requirePermission } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -23,7 +23,7 @@ function genNo(prefix) {
 /* ═══ 物品出入庫 ═══ */
 
 // GET /api/inventory/movements
-router.get('/movements', auth, (req, res) => {
+router.get('/movements', auth, requirePermission('inventory', 'view'),(req, res) => {
   const { type, project_id, status } = req.query;
   let items = db.getAll('inventory_movements');
   if (type) items = items.filter(i => i.type === type);
@@ -40,7 +40,7 @@ router.get('/movements', auth, (req, res) => {
 });
 
 // GET /api/inventory/movements/:id
-router.get('/movements/:id', auth, (req, res) => {
+router.get('/movements/:id', auth, requirePermission('inventory', 'view'),(req, res) => {
   const m = db.getById('inventory_movements', req.params.id);
   if (!m) return res.status(404).json({ error: '不存在' });
   const details = db.find('inventory_movement_details', d => d.movement_id === m.id);
@@ -48,7 +48,7 @@ router.get('/movements/:id', auth, (req, res) => {
 });
 
 // POST /api/inventory/checkout — 出庫
-router.post('/checkout', auth, (req, res) => {
+router.post('/checkout', auth, requirePermission('inventory', 'create'),(req, res) => {
   const { project_id, return_date, notes, items } = req.body;
   if (!items || !items.length) return res.status(400).json({ error: '缺少物品清單' });
 
@@ -75,7 +75,7 @@ router.post('/checkout', auth, (req, res) => {
 });
 
 // POST /api/inventory/checkin — 入庫
-router.post('/checkin', auth, (req, res) => {
+router.post('/checkin', auth, requirePermission('inventory', 'create'),(req, res) => {
   const { project_id, notes, items } = req.body;
   if (!items || !items.length) return res.status(400).json({ error: '缺少物品清單' });
 
@@ -106,7 +106,7 @@ router.post('/checkin', auth, (req, res) => {
 /* ═══ 盤點 ═══ */
 
 // GET /api/inventory/counts
-router.get('/counts', auth, (req, res) => {
+router.get('/counts', auth, requirePermission('inventory', 'view'),(req, res) => {
   const items = db.getAll('inventory_counts')
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   const enriched = items.map(c => {
@@ -118,7 +118,7 @@ router.get('/counts', auth, (req, res) => {
 });
 
 // POST /api/inventory/counts — 新增盤點
-router.post('/counts', auth, (req, res) => {
+router.post('/counts', auth, requirePermission('inventory', 'create'),(req, res) => {
   const { warehouse, items: countItems } = req.body;
   const count = db.insert('inventory_counts', {
     id: uuidv4(), count_no: genNo('IC'),
@@ -142,7 +142,7 @@ router.post('/counts', auth, (req, res) => {
 });
 
 // PUT /api/inventory/counts/:id/complete — 完成盤點
-router.put('/counts/:id/complete', auth, (req, res) => {
+router.put('/counts/:id/complete', auth, requirePermission('inventory', 'edit'),(req, res) => {
   const count = db.getById('inventory_counts', req.params.id);
   if (!count) return res.status(404).json({ error: '不存在' });
 
@@ -164,7 +164,7 @@ router.put('/counts/:id/complete', auth, (req, res) => {
 /* ═══ 進貨 ═══ */
 
 // GET /api/inventory/receipts
-router.get('/receipts', auth, (req, res) => {
+router.get('/receipts', auth, requirePermission('inventory', 'view'),(req, res) => {
   const items = db.getAll('goods_receipts')
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   const enriched = items.map(r => {
@@ -176,7 +176,7 @@ router.get('/receipts', auth, (req, res) => {
 });
 
 // POST /api/inventory/receipts — 進貨
-router.post('/receipts', auth, (req, res) => {
+router.post('/receipts', auth, requirePermission('inventory', 'create'),(req, res) => {
   const { vendor_id, items: receiptItems, notes } = req.body;
 
   const receipt = db.insert('goods_receipts', {

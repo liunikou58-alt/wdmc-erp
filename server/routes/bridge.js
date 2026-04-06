@@ -1,16 +1,16 @@
 /**
- * ProposalFlow AI ↔ WDMC ERP API 橋接
- * ProposalFlow AI 在 port 3001, WDMC ERP 在 port 3002
+ * WDMC AI賦能系統 ↔ WDMC管理中心 API 橋接
+ * WDMC AI賦能系統 在 port 3001, WDMC管理中心 在 port 3002
  */
 const express = require('express');
 const db = require('../db');
-const { auth, logActivity } = require('../middleware/auth');
+const { auth, logActivity, requirePermission } = require('../middleware/auth');
 
 const router = express.Router();
 const PF_BASE = process.env.PROPOSALFLOW_URL || 'http://localhost:3001';
 
 // 從 ProposalFlow 拉取專案列表
-router.get('/proposalflow/projects', auth, async (req, res) => {
+router.get('/proposalflow/projects', auth, requirePermission('settings', 'view'),async (req, res) => {
   try {
     const r = await fetch(`${PF_BASE}/api/projects`);
     if (!r.ok) throw new Error('ProposalFlow 無回應');
@@ -21,7 +21,7 @@ router.get('/proposalflow/projects', auth, async (req, res) => {
 });
 
 // 從 ProposalFlow 匯入專案到 ERP
-router.post('/proposalflow/import/:pfProjectId', auth, async (req, res) => {
+router.post('/proposalflow/import/:pfProjectId', auth, requirePermission('settings', 'create'),async (req, res) => {
   try {
     const r = await fetch(`${PF_BASE}/api/projects/${req.params.pfProjectId}`);
     if (!r.ok) throw new Error('專案不存在');
@@ -48,7 +48,7 @@ router.post('/proposalflow/import/:pfProjectId', auth, async (req, res) => {
 });
 
 // 提供 ERP 專案資料給 ProposalFlow 查詢
-router.get('/erp/projects', auth, (req, res) => {
+router.get('/erp/projects', auth, requirePermission('settings', 'view'),(req, res) => {
   const projects = db.getAll('projects').map(p => {
     const customer = p.customer_id ? db.getById('customers', p.customer_id) : null;
     return { id: p.id, name: p.name, customer_name: customer?.name || '', status: p.status, budget: p.budget };
@@ -57,7 +57,7 @@ router.get('/erp/projects', auth, (req, res) => {
 });
 
 // 連線狀態檢查
-router.get('/status', auth, async (req, res) => {
+router.get('/status', auth, requirePermission('settings', 'view'),async (req, res) => {
   let pfStatus = 'offline';
   try {
     const r = await fetch(`${PF_BASE}/api/health`, { signal: AbortSignal.timeout(3000) });

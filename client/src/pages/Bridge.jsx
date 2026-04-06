@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
+import { useLang } from '../LangContext'
 import { api } from '../api'
 
 export default function Bridge() {
+  const { t } = useLang();
   const [status, setStatus] = useState(null);
   const [pfProjects, setPfProjects] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -32,19 +34,19 @@ export default function Bridge() {
 
   return (
     <>
-      <div className="page-header"><div><h1 className="page-title">🔗 系統橋接</h1><p className="page-subtitle">ProposalFlow AI ↔ WDMC ERP 資料互通</p></div></div>
+      <div className="page-header"><div><h1 className="page-title">{t('page.bridge')}</h1><p className="page-subtitle">ProposalFlow AI ↔ WDMC ERP 資料互通</p></div></div>
 
       {/* 連線狀態 */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, marginBottom: 24 }}>
         <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '20px 24px' }}>
-          <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#16a34a', boxShadow: '0 0 8px #16a34a' }} />
+          <div style={{ width: 12, height: 12, borderRadius: '50%', background: 'var(--c-success)', boxShadow: '0 0 8px var(--c-success)' }} />
           <div>
             <div style={{ fontWeight: 700, fontSize: 15 }}>🏢 WDMC ERP</div>
             <div style={{ fontSize: 12, color: 'var(--c-text-muted)' }}>localhost:3002 · <span style={{ color: 'var(--c-success)' }}>在線</span></div>
           </div>
         </div>
         <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '20px 24px' }}>
-          <div style={{ width: 12, height: 12, borderRadius: '50%', background: status?.proposalflow === 'online' ? '#16a34a' : '#dc2626', boxShadow: status?.proposalflow === 'online' ? '0 0 8px #16a34a' : '0 0 8px #dc2626' }} />
+          <div style={{ width: 12, height: 12, borderRadius: '50%', background: status?.proposalflow === 'online' ? 'var(--c-success)' : 'var(--c-danger)', boxShadow: status?.proposalflow === 'online' ? '0 0 8px var(--c-success)' : '0 0 8px var(--c-danger)' }} />
           <div>
             <div style={{ fontWeight: 700, fontSize: 15 }}>🤖 ProposalFlow AI</div>
             <div style={{ fontSize: 12, color: 'var(--c-text-muted)' }}>localhost:3001 · <span style={{ color: status?.proposalflow === 'online' ? 'var(--c-success)' : 'var(--c-danger)' }}>{status?.proposalflow === 'online' ? '在線' : '離線'}</span></div>

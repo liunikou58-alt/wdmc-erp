@@ -1,12 +1,12 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
-const { auth, logActivity } = require('../middleware/auth');
+const { auth, logActivity, requirePermission } = require('../middleware/auth');
 
 const router = express.Router();
 
 // GET /api/projects
-router.get('/', auth, (req, res) => {
+router.get('/', auth, requirePermission('projects', 'view'),(req, res) => {
   const projects = db.getAll('projects').sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   const enriched = projects.map(p => {
     const customer = p.customer_id ? db.getById('customers', p.customer_id) : null;
@@ -23,7 +23,7 @@ router.get('/', auth, (req, res) => {
 });
 
 // GET /api/projects/:id
-router.get('/:id', auth, (req, res) => {
+router.get('/:id', auth, requirePermission('projects', 'view'),(req, res) => {
   const p = db.getById('projects', req.params.id);
   if (!p) return res.status(404).json({ error: '專案不存在' });
   const customer = p.customer_id ? db.getById('customers', p.customer_id) : null;
@@ -33,28 +33,34 @@ router.get('/:id', auth, (req, res) => {
 });
 
 // POST /api/projects
-router.post('/', auth, (req, res) => {
-  const { name, customer_id, case_id, event_date, deadline, budget, pm_id, description, event_type } = req.body;
+router.post('/', auth, requirePermission('projects', 'create'),(req, res) => {
+  const { name, customer_id, case_id, event_date, event_end_date, event_address,
+    deadline, budget, pm_id, description, event_type, project_type,
+    contract_date, internal_close_date, external_close_date } = req.body;
   if (!name) return res.status(400).json({ error: '缺少專案名稱' });
   const project = db.insert('projects', {
     id: uuidv4(), name, customer_id: customer_id || null, case_id: case_id || null,
-    event_date: event_date || '', deadline: deadline || '', budget: budget || 0,
+    event_date: event_date || '', event_end_date: event_end_date || '', event_address: event_address || '',
+    deadline: deadline || '', budget: budget || 0,
     pm_id: pm_id || req.user.id, description: description || '',
-    event_type: event_type || '', status: 'planning', created_by: req.user.id
+    event_type: event_type || '', project_type: project_type || '一般專案',
+    status: 'planning',
+    contract_date: contract_date || '', internal_close_date: internal_close_date || '', external_close_date: external_close_date || '',
+    created_by: req.user.id
   });
   logActivity(db, project.id, req.user.id, 'create_project', `建立專案 ${name}`);
   res.status(201).json(project);
 });
 
 // PUT /api/projects/:id
-router.put('/:id', auth, (req, res) => {
+router.put('/:id', auth, requirePermission('projects', 'edit'),(req, res) => {
   const updated = db.update('projects', req.params.id, req.body);
   if (!updated) return res.status(404).json({ error: '專案不存在' });
   res.json(updated);
 });
 
 // DELETE /api/projects/:id
-router.delete('/:id', auth, (req, res) => {
+router.delete('/:id', auth, requirePermission('projects', 'delete'),(req, res) => {
   db.remove('projects', req.params.id);
   db.removeWhere('project_tasks', t => t.project_id === req.params.id);
   db.removeWhere('project_milestones', m => m.project_id === req.params.id);
@@ -62,7 +68,7 @@ router.delete('/:id', auth, (req, res) => {
 });
 
 // === 專案任務 ===
-router.get('/:id/tasks', auth, (req, res) => {
+router.get('/:id/tasks', auth, requirePermission('projects', 'view'),(req, res) => {
   const tasks = db.find('project_tasks', t => t.project_id === req.params.id)
     .map(t => {
       const assignee = t.assignee_id ? db.getById('users', t.assignee_id) : null;
@@ -72,7 +78,7 @@ router.get('/:id/tasks', auth, (req, res) => {
   res.json(tasks);
 });
 
-router.post('/:id/tasks', auth, (req, res) => {
+router.post('/:id/tasks', auth, requirePermission('projects', 'create'),(req, res) => {
   const { title, description, assignee_id, department_id, priority, due_date, parent_id } = req.body;
   const task = db.insert('project_tasks', {
     id: uuidv4(), project_id: req.params.id, title: title || '', description: description || '',
@@ -84,7 +90,7 @@ router.post('/:id/tasks', auth, (req, res) => {
   res.status(201).json(task);
 });
 
-router.put('/:id/tasks/:taskId', auth, (req, res) => {
+router.put('/:id/tasks/:taskId', auth, requirePermission('projects', 'edit'),(req, res) => {
   const updates = { ...req.body };
   if (updates.status === 'done') updates.completed_at = new Date().toISOString();
   const updated = db.update('project_tasks', req.params.taskId, updates);
@@ -92,17 +98,17 @@ router.put('/:id/tasks/:taskId', auth, (req, res) => {
   res.json(updated);
 });
 
-router.delete('/:id/tasks/:taskId', auth, (req, res) => {
+router.delete('/:id/tasks/:taskId', auth, requirePermission('projects', 'delete'),(req, res) => {
   db.remove('project_tasks', req.params.taskId);
   res.json({ success: true });
 });
 
 // === 專案里程碑 ===
-router.get('/:id/milestones', auth, (req, res) => {
+router.get('/:id/milestones', auth, requirePermission('projects', 'view'),(req, res) => {
   res.json(db.find('project_milestones', m => m.project_id === req.params.id).sort((a, b) => new Date(a.target_date) - new Date(b.target_date)));
 });
 
-router.post('/:id/milestones', auth, (req, res) => {
+router.post('/:id/milestones', auth, requirePermission('projects', 'create'),(req, res) => {
   const { title, target_date, description } = req.body;
   const ms = db.insert('project_milestones', {
     id: uuidv4(), project_id: req.params.id, title: title || '',
@@ -111,9 +117,41 @@ router.post('/:id/milestones', auth, (req, res) => {
   res.status(201).json(ms);
 });
 
-router.put('/:id/milestones/:msId', auth, (req, res) => {
+router.put('/:id/milestones/:msId', auth, requirePermission('projects', 'edit'),(req, res) => {
   const updated = db.update('project_milestones', req.params.msId, req.body);
   res.json(updated);
 });
 
+// === 預算明細 (Budget Breakdown) ===
+router.get('/:id/budget-items', auth, requirePermission('projects', 'view'),(req, res) => {
+  const items = db.find('project_budget_items', b => b.project_id === req.params.id)
+    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+  res.json(items);
+});
+
+router.post('/:id/budget-items', auth, requirePermission('projects', 'create'),(req, res) => {
+  const { category, description, estimated_amount, sort_order } = req.body;
+  const item = db.insert('project_budget_items', {
+    id: uuidv4(), project_id: req.params.id,
+    category: category || '', description: description || '',
+    estimated_amount: Number(estimated_amount) || 0,
+    sort_order: sort_order || 0,
+  });
+  // Recalculate project budget total
+  const all = db.find('project_budget_items', b => b.project_id === req.params.id);
+  const total = all.reduce((s, b) => s + (b.estimated_amount || 0), 0);
+  db.update('projects', req.params.id, { budget: total });
+  res.status(201).json(item);
+});
+
+router.delete('/:id/budget-items/:itemId', auth, requirePermission('projects', 'delete'),(req, res) => {
+  db.remove('project_budget_items', req.params.itemId);
+  // Recalculate project budget total
+  const all = db.find('project_budget_items', b => b.project_id === req.params.id);
+  const total = all.reduce((s, b) => s + (b.estimated_amount || 0), 0);
+  db.update('projects', req.params.id, { budget: total });
+  res.json({ success: true });
+});
+
 module.exports = router;
+

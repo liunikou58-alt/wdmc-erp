@@ -1,5 +1,5 @@
 /**
- * WDMC ERP 資料庫實例
+ * WDMC管理中心 資料庫實例
  * 使用共用 adapter，未來只需改 type: 'pg' 即可遷移
  */
 const path = require('path');
@@ -72,11 +72,23 @@ const db = createAdapter({
     profit_loss_sub_details: [],
     bonus_roles: [],
     bonus_allocations: [],
+    bonus_tiers: [],        // M0~M6 / C0~C6 級距表
+    bonus_rules: [],        // 自訂規則（相容舊版）
+    bonus_point_allocations: [],  // 10 點積分配分紀錄
+    bonus_reviews: [],            // 結案會議審查表
     proposal_items: [],
     // Form Builder
     form_schemas: [],
     form_records: [],
-    form_folders: []
+    form_folders: [],
+    // Phase 6: 新增模組
+    journal_entries: [],
+    events: [],
+    // Phase 7: 簡報需求新增模組
+    daily_reports: [],
+    vehicle_bookings: [],
+    attendance: [],
+    company_events: [],
   }
 });
 

@@ -7,20 +7,20 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
-const { auth, logActivity } = require('../middleware/auth');
+const { auth, logActivity, requirePermission } = require('../middleware/auth');
 
 const router = express.Router();
 
 /* ═══ 活動流程表 ═══ */
 
 // GET /api/event-docs/:projectId/flow
-router.get('/:projectId/flow', auth, (req, res) => {
+router.get('/:projectId/flow', auth, requirePermission('event_docs', 'view'),(req, res) => {
   const items = db.find('event_flows', f => f.project_id === req.params.projectId)
     .sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
   res.json(items);
 });
 
-router.post('/:projectId/flow', auth, (req, res) => {
+router.post('/:projectId/flow', auth, requirePermission('event_docs', 'create'),(req, res) => {
   const { time_slot, content, responsible_person, responsible_dept,
     equipment_needed, lighting_cue, audio_cue, notes } = req.body;
   const existing = db.find('event_flows', f => f.project_id === req.params.projectId);
@@ -35,18 +35,18 @@ router.post('/:projectId/flow', auth, (req, res) => {
   res.status(201).json(item);
 });
 
-router.put('/:projectId/flow/:id', auth, (req, res) => {
+router.put('/:projectId/flow/:id', auth, requirePermission('event_docs', 'edit'),(req, res) => {
   res.json(db.update('event_flows', req.params.id, req.body));
 });
 
-router.delete('/:projectId/flow/:id', auth, (req, res) => {
+router.delete('/:projectId/flow/:id', auth, requirePermission('event_docs', 'delete'),(req, res) => {
   db.remove('event_flows', req.params.id);
   res.json({ success: true });
 });
 
 /* ═══ 活動硬體需求單 ═══ */
 
-router.get('/:projectId/hardware', auth, (req, res) => {
+router.get('/:projectId/hardware', auth, requirePermission('event_docs', 'view'),(req, res) => {
   const items = db.find('hardware_requirements', h => h.project_id === req.params.projectId);
   const enriched = items.map(h => {
     const asset = h.item_id ? db.getById('assets', h.item_id) : null;
@@ -56,7 +56,7 @@ router.get('/:projectId/hardware', auth, (req, res) => {
   res.json(enriched);
 });
 
-router.post('/:projectId/hardware', auth, (req, res) => {
+router.post('/:projectId/hardware', auth, requirePermission('event_docs', 'create'),(req, res) => {
   const { item_id, quantity, pickup_date, return_date, responsible_person, notes } = req.body;
   const item = db.insert('hardware_requirements', {
     id: uuidv4(), project_id: req.params.projectId,
@@ -68,23 +68,23 @@ router.post('/:projectId/hardware', auth, (req, res) => {
   res.status(201).json(item);
 });
 
-router.put('/:projectId/hardware/:id', auth, (req, res) => {
+router.put('/:projectId/hardware/:id', auth, requirePermission('event_docs', 'edit'),(req, res) => {
   res.json(db.update('hardware_requirements', req.params.id, req.body));
 });
 
-router.delete('/:projectId/hardware/:id', auth, (req, res) => {
+router.delete('/:projectId/hardware/:id', auth, requirePermission('event_docs', 'delete'),(req, res) => {
   db.remove('hardware_requirements', req.params.id);
   res.json({ success: true });
 });
 
 /* ═══ Kick-off 啟動表 ═══ */
 
-router.get('/:projectId/kickoff', auth, (req, res) => {
+router.get('/:projectId/kickoff', auth, requirePermission('event_docs', 'view'),(req, res) => {
   const item = db.findOne('kickoff_forms', k => k.project_id === req.params.projectId);
   res.json(item || null);
 });
 
-router.post('/:projectId/kickoff', auth, (req, res) => {
+router.post('/:projectId/kickoff', auth, requirePermission('event_docs', 'create'),(req, res) => {
   const existing = db.findOne('kickoff_forms', k => k.project_id === req.params.projectId);
   if (existing) return res.status(409).json({ error: '啟動表已存在', existing });
 
@@ -100,18 +100,18 @@ router.post('/:projectId/kickoff', auth, (req, res) => {
   res.status(201).json(item);
 });
 
-router.put('/:projectId/kickoff/:id', auth, (req, res) => {
+router.put('/:projectId/kickoff/:id', auth, requirePermission('event_docs', 'edit'),(req, res) => {
   res.json(db.update('kickoff_forms', req.params.id, req.body));
 });
 
 /* ═══ Review 結案表 ═══ */
 
-router.get('/:projectId/review', auth, (req, res) => {
+router.get('/:projectId/review', auth, requirePermission('event_docs', 'view'),(req, res) => {
   const item = db.findOne('review_forms', r => r.project_id === req.params.projectId);
   res.json(item || null);
 });
 
-router.post('/:projectId/review', auth, (req, res) => {
+router.post('/:projectId/review', auth, requirePermission('event_docs', 'create'),(req, res) => {
   const existing = db.findOne('review_forms', r => r.project_id === req.params.projectId);
   if (existing) return res.status(409).json({ error: '結案表已存在', existing });
 
@@ -130,13 +130,13 @@ router.post('/:projectId/review', auth, (req, res) => {
   res.status(201).json(item);
 });
 
-router.put('/:projectId/review/:id', auth, (req, res) => {
+router.put('/:projectId/review/:id', auth, requirePermission('event_docs', 'edit'),(req, res) => {
   res.json(db.update('review_forms', req.params.id, req.body));
 });
 
 /* ═══ 專案模擬器 ═══ */
 
-router.get('/simulator/list', auth, (req, res) => {
+router.get('/simulator/list', auth, requirePermission('event_docs', 'view'),(req, res) => {
   const items = db.getAll('project_simulations')
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   const enriched = items.map(s => {
@@ -146,7 +146,7 @@ router.get('/simulator/list', auth, (req, res) => {
   res.json(enriched);
 });
 
-router.get('/simulator/:id', auth, (req, res) => {
+router.get('/simulator/:id', auth, requirePermission('event_docs', 'view'),(req, res) => {
   const sim = db.getById('project_simulations', req.params.id);
   if (!sim) return res.status(404).json({ error: '不存在' });
   const details = db.find('project_simulation_details', d => d.simulator_id === sim.id)
@@ -154,7 +154,7 @@ router.get('/simulator/:id', auth, (req, res) => {
   res.json({ ...sim, details });
 });
 
-router.post('/simulator', auth, (req, res) => {
+router.post('/simulator', auth, requirePermission('event_docs', 'create'),(req, res) => {
   const { name, event_type, template_id, items: simItems } = req.body;
   const sim = db.insert('project_simulations', {
     id: uuidv4(), name: name || '未命名模擬',
@@ -184,7 +184,7 @@ router.post('/simulator', auth, (req, res) => {
   res.status(201).json(db.getById('project_simulations', sim.id));
 });
 
-router.delete('/simulator/:id', auth, (req, res) => {
+router.delete('/simulator/:id', auth, requirePermission('event_docs', 'delete'),(req, res) => {
   db.removeWhere('project_simulation_details', d => d.simulator_id === req.params.id);
   db.remove('project_simulations', req.params.id);
   res.json({ success: true });
@@ -192,11 +192,11 @@ router.delete('/simulator/:id', auth, (req, res) => {
 
 /* ═══ 專案模版 ═══ */
 
-router.get('/templates/list', auth, (req, res) => {
+router.get('/templates/list', auth, requirePermission('event_docs', 'view'),(req, res) => {
   res.json(db.getAll('project_templates'));
 });
 
-router.post('/templates', auth, (req, res) => {
+router.post('/templates', auth, requirePermission('event_docs', 'create'),(req, res) => {
   const { name, event_type, items } = req.body;
   const template = db.insert('project_templates', {
     id: uuidv4(), name: name || '', event_type: event_type || '',
@@ -205,7 +205,7 @@ router.post('/templates', auth, (req, res) => {
   res.status(201).json(template);
 });
 
-router.delete('/templates/:id', auth, (req, res) => {
+router.delete('/templates/:id', auth, requirePermission('event_docs', 'delete'),(req, res) => {
   db.remove('project_templates', req.params.id);
   res.json({ success: true });
 });

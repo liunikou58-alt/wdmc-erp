@@ -6,7 +6,7 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
-const { auth, logActivity } = require('../middleware/auth');
+const { auth, logActivity, requirePermission } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -30,7 +30,7 @@ function generateProofNo() {
 /* ── 請付款單 CRUD ── */
 
 // GET /api/payments — 列表
-router.get('/', auth, (req, res) => {
+router.get('/', auth, requirePermission('payments', 'view'),(req, res) => {
   const { type, status, project_id } = req.query;
   let items = db.getAll('payment_requests');
   if (type) items = items.filter(p => p.type === type);
@@ -53,7 +53,7 @@ router.get('/', auth, (req, res) => {
 });
 
 // GET /api/payments/stats
-router.get('/stats', auth, (req, res) => {
+router.get('/stats', auth, requirePermission('payments', 'view'),(req, res) => {
   const all = db.getAll('payment_requests');
   res.json({
     total: all.length,
@@ -67,14 +67,14 @@ router.get('/stats', auth, (req, res) => {
 });
 
 // GET /api/payments/:id
-router.get('/:id', auth, (req, res) => {
+router.get('/:id', auth, requirePermission('payments', 'view'),(req, res) => {
   const item = db.getById('payment_requests', req.params.id);
   if (!item) return res.status(404).json({ error: '付款單不存在' });
   res.json(item);
 });
 
 // POST /api/payments
-router.post('/', auth, (req, res) => {
+router.post('/', auth, requirePermission('payments', 'create'),(req, res) => {
   const { type, project_id, payee_vendor_id, payee_name, amount, reason,
     invoice_number, payment_method, receipt_attachment, department_id } = req.body;
   if (!reason && !payee_name) return res.status(400).json({ error: '缺少付款事由或對象' });
@@ -115,7 +115,7 @@ router.post('/', auth, (req, res) => {
 });
 
 // PUT /api/payments/:id
-router.put('/:id', auth, (req, res) => {
+router.put('/:id', auth, requirePermission('payments', 'edit'),(req, res) => {
   const item = db.getById('payment_requests', req.params.id);
   if (!item) return res.status(404).json({ error: '不存在' });
   if (item.status === 'paid') return res.status(403).json({ error: '已付款，無法修改' });
@@ -123,7 +123,7 @@ router.put('/:id', auth, (req, res) => {
 });
 
 // PUT /api/payments/:id/approve — 核准
-router.put('/:id/approve', auth, (req, res) => {
+router.put('/:id/approve', auth, requirePermission('payments', 'approve'),(req, res) => {
   const item = db.getById('payment_requests', req.params.id);
   if (!item) return res.status(404).json({ error: '不存在' });
   const updated = db.update('payment_requests', req.params.id, {
@@ -141,7 +141,7 @@ router.put('/:id/approve', auth, (req, res) => {
 });
 
 // PUT /api/payments/:id/reject — 退回
-router.put('/:id/reject', auth, (req, res) => {
+router.put('/:id/reject', auth, requirePermission('payments', 'edit'),(req, res) => {
   const item = db.getById('payment_requests', req.params.id);
   if (!item) return res.status(404).json({ error: '不存在' });
   const { comment } = req.body || {};
@@ -158,7 +158,7 @@ router.put('/:id/reject', auth, (req, res) => {
 });
 
 // PUT /api/payments/:id/pay — 標記已付款
-router.put('/:id/pay', auth, (req, res) => {
+router.put('/:id/pay', auth, requirePermission('payments', 'edit'),(req, res) => {
   const item = db.getById('payment_requests', req.params.id);
   if (!item) return res.status(404).json({ error: '不存在' });
   const updated = db.update('payment_requests', req.params.id, {
@@ -184,7 +184,7 @@ router.put('/:id/pay', auth, (req, res) => {
 });
 
 // DELETE /api/payments/:id
-router.delete('/:id', auth, (req, res) => {
+router.delete('/:id', auth, requirePermission('payments', 'delete'),(req, res) => {
   const item = db.getById('payment_requests', req.params.id);
   if (!item) return res.status(404).json({ error: '不存在' });
   if (item.status === 'paid') return res.status(403).json({ error: '已付款，無法刪除' });
@@ -195,7 +195,7 @@ router.delete('/:id', auth, (req, res) => {
 /* ── 支出證明單 ── */
 
 // GET /api/payments/expense-proofs — 列表
-router.get('/expense-proofs/list', auth, (req, res) => {
+router.get('/expense-proofs/list', auth, requirePermission('payments', 'view'),(req, res) => {
   const items = db.getAll('expense_proofs')
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   const enriched = items.map(p => {
@@ -207,7 +207,7 @@ router.get('/expense-proofs/list', auth, (req, res) => {
 });
 
 // POST /api/payments/expense-proofs — 新增
-router.post('/expense-proofs', auth, (req, res) => {
+router.post('/expense-proofs', auth, requirePermission('payments', 'create'),(req, res) => {
   const { expense_date, amount, purpose, attachment, project_id } = req.body;
   const item = db.insert('expense_proofs', {
     id: uuidv4(),
@@ -224,7 +224,7 @@ router.post('/expense-proofs', auth, (req, res) => {
 });
 
 // PUT /api/payments/expense-proofs/:id/verify — 核銷
-router.put('/expense-proofs/:id/verify', auth, (req, res) => {
+router.put('/expense-proofs/:id/verify', auth, requirePermission('payments', 'edit'),(req, res) => {
   const updated = db.update('expense_proofs', req.params.id, {
     reimbursement_status: 'reimbursed',
   });

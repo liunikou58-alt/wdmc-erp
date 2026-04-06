@@ -1,12 +1,12 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
-const { auth, logActivity } = require('../middleware/auth');
+const { auth, logActivity, requirePermission } = require('../middleware/auth');
 
 const router = express.Router();
 
 // === 提案管理 ===
-router.get('/', auth, (req, res) => {
+router.get('/', auth, requirePermission('proposals', 'view'),(req, res) => {
   const proposals = db.getAll('proposals').sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   const enriched = proposals.map(p => {
     const customer = p.customer_id ? db.getById('customers', p.customer_id) : null;
@@ -26,7 +26,7 @@ router.get('/', auth, (req, res) => {
   res.json(enriched);
 });
 
-router.get('/:id', auth, (req, res) => {
+router.get('/:id', auth, requirePermission('proposals', 'view'),(req, res) => {
   const p = db.getById('proposals', req.params.id);
   if (!p) return res.status(404).json({ error: '提案不存在' });
   const quotations = db.find('quotations', q => q.proposal_id === p.id);
@@ -36,13 +36,16 @@ router.get('/:id', auth, (req, res) => {
   res.json({ ...p, quotations, customer_name: customer?.name || '', total_quote, tax_included_quote: Math.round(total_quote * 1.05) });
 });
 
-router.post('/', auth, (req, res) => {
+router.post('/', auth, requirePermission('proposals', 'create'),(req, res) => {
   const { title, customer_id, case_id, description, event_type, event_date,
+    event_end_date, event_address, planner_id,
     department, case_status, case_type, total_quote } = req.body;
   if (!title) return res.status(400).json({ error: '缺少提案名稱' });
   const p = db.insert('proposals', {
     id: uuidv4(), title, customer_id: customer_id || null, case_id: case_id || null,
     description: description || '', event_type: event_type || '', event_date: event_date || '',
+    event_end_date: event_end_date || '', event_address: event_address || '',
+    planner_id: planner_id || req.user.id,
     department: department || '瓦當麥可',
     case_status: case_status || '提案中',
     case_type: case_type || '商案',
@@ -53,26 +56,27 @@ router.post('/', auth, (req, res) => {
   res.status(201).json(p);
 });
 
-router.put('/:id', auth, (req, res) => {
+router.put('/:id', auth, requirePermission('proposals', 'edit'),(req, res) => {
   const updated = db.update('proposals', req.params.id, req.body);
   if (!updated) return res.status(404).json({ error: '提案不存在' });
   res.json(updated);
 });
 
-router.delete('/:id', auth, (req, res) => {
+router.delete('/:id', auth, requirePermission('proposals', 'delete'),(req, res) => {
   db.remove('proposals', req.params.id);
   db.removeWhere('quotations', q => q.proposal_id === req.params.id);
   res.json({ success: true });
 });
 
 // 提案轉專案
-router.post('/:id/convert', auth, (req, res) => {
+router.post('/:id/convert', auth, requirePermission('proposals', 'create'),(req, res) => {
   const p = db.getById('proposals', req.params.id);
   if (!p) return res.status(404).json({ error: '提案不存在' });
   const project = db.insert('projects', {
     id: uuidv4(), name: p.title, customer_id: p.customer_id, case_id: p.case_id,
-    event_date: p.event_date, description: p.description, event_type: p.event_type,
-    status: 'planning', pm_id: req.user.id, budget: 0, created_by: req.user.id
+    event_date: p.event_date, event_end_date: p.event_end_date || '', event_address: p.event_address || '',
+    description: p.description, event_type: p.event_type,
+    status: 'planning', pm_id: p.planner_id || req.user.id, budget: 0, created_by: req.user.id
   });
   db.update('proposals', p.id, { status: 'converted', project_id: project.id });
   logActivity(db, project.id, req.user.id, 'convert_proposal', `提案「${p.title}」轉為專案`);
@@ -80,11 +84,11 @@ router.post('/:id/convert', auth, (req, res) => {
 });
 
 // === 報價單管理 ===
-router.get('/:proposalId/quotations', auth, (req, res) => {
+router.get('/:proposalId/quotations', auth, requirePermission('proposals', 'view'),(req, res) => {
   res.json(db.find('quotations', q => q.proposal_id === req.params.proposalId));
 });
 
-router.post('/:proposalId/quotations', auth, (req, res) => {
+router.post('/:proposalId/quotations', auth, requirePermission('proposals', 'create'),(req, res) => {
   const { items, total, notes, valid_until } = req.body;
   const existing = db.find('quotations', q => q.proposal_id === req.params.proposalId);
   const q = db.insert('quotations', {
@@ -96,20 +100,20 @@ router.post('/:proposalId/quotations', auth, (req, res) => {
   res.status(201).json(q);
 });
 
-router.put('/:proposalId/quotations/:qId', auth, (req, res) => {
+router.put('/:proposalId/quotations/:qId', auth, requirePermission('proposals', 'edit'),(req, res) => {
   const updated = db.update('quotations', req.params.qId, req.body);
   res.json(updated);
 });
 
 /* ═══ 報價子表 V2 (proposal_items) ═══ */
 
-router.get('/:id/items', auth, (req, res) => {
+router.get('/:id/items', auth, requirePermission('proposals', 'view'),(req, res) => {
   const items = db.find('proposal_items', i => i.proposal_id === req.params.id)
     .sort((a, b) => (a.order || 0) - (b.order || 0));
   res.json(items);
 });
 
-router.post('/:id/items', auth, (req, res) => {
+router.post('/:id/items', auth, requirePermission('proposals', 'create'),(req, res) => {
   const item = db.insert('proposal_items', {
     id: require('uuid').v4(),
     proposal_id: req.params.id,
@@ -123,7 +127,7 @@ router.post('/:id/items', auth, (req, res) => {
   res.status(201).json(item);
 });
 
-router.put('/:id/items/:itemId', auth, (req, res) => {
+router.put('/:id/items/:itemId', auth, requirePermission('proposals', 'edit'),(req, res) => {
   const updated = db.update('proposal_items', req.params.itemId, req.body);
   // 更新 proposal 總額
   const total = db.find('proposal_items', i => i.proposal_id === req.params.id)
@@ -132,7 +136,7 @@ router.put('/:id/items/:itemId', auth, (req, res) => {
   res.json(updated);
 });
 
-router.delete('/:id/items/:itemId', auth, (req, res) => {
+router.delete('/:id/items/:itemId', auth, requirePermission('proposals', 'delete'),(req, res) => {
   db.remove('proposal_items', req.params.itemId);
   const total = db.find('proposal_items', i => i.proposal_id === req.params.id)
     .reduce((s, i) => s + (i.amount || 0), 0);
@@ -140,7 +144,7 @@ router.delete('/:id/items/:itemId', auth, (req, res) => {
   res.json({ success: true });
 });
 // === 得標自動流程：報價→採購單+損益+專案 ===
-router.post('/:id/to-all', auth, (req, res) => {
+router.post('/:id/to-all', auth, requirePermission('proposals', 'create'),(req, res) => {
   const p = db.getById('proposals', req.params.id);
   if (!p) return res.status(404).json({ error: '找不到' });
   const results = {};
@@ -187,7 +191,48 @@ router.post('/:id/to-all', auth, (req, res) => {
 
   // 4. 更新提案狀態
   db.update('proposals', p.id, { case_status: '得標', workflow_triggered: true });
-  results.message = `已自動建立：採購單 ${po.po_no} + 損益表 ${pl.pl_no}`;
+
+  // 4.5 自動在行事曆建立活動日（簡報需求：得標後自動填寫）
+  if (p.event_date) {
+    const customer = p.customer_id ? db.getById('customers', p.customer_id) : null;
+    db.insert('calendar_events', {
+      id: uuidv4(),
+      title: `🎪 ${p.title}`,
+      date: p.event_date,
+      end_date: p.event_end_date || p.event_date,
+      type: 'event',
+      color: '#f59e0b',
+      description: `客戶：${customer?.name || '未指定'}\n地點：${p.event_address || '未指定'}`,
+      proposal_id: p.id,
+      auto_generated: true,
+    });
+    results.calendar = `已自動建立活動日 ${p.event_date}`;
+    // 如有進撤場日（活動日前後各 1 天），也自動建立
+    const setupDate = new Date(p.event_date);
+    setupDate.setDate(setupDate.getDate() - 1);
+    db.insert('calendar_events', {
+      id: uuidv4(),
+      title: `🏗️ 進場｜${p.title}`,
+      date: setupDate.toISOString().slice(0, 10),
+      type: 'setup',
+      color: '#8b5cf6',
+      proposal_id: p.id,
+      auto_generated: true,
+    });
+    const teardownDate = new Date(p.event_end_date || p.event_date);
+    teardownDate.setDate(teardownDate.getDate() + 1);
+    db.insert('calendar_events', {
+      id: uuidv4(),
+      title: `🏗️ 撤場｜${p.title}`,
+      date: teardownDate.toISOString().slice(0, 10),
+      type: 'setup',
+      color: '#8b5cf6',
+      proposal_id: p.id,
+      auto_generated: true,
+    });
+  }
+
+  results.message = `已自動建立：採購單 ${po.po_no} + 損益表 ${pl.pl_no}${results.calendar ? ' + 行事曆事件' : ''}`;
 
   logActivity(db, null, req.user.id, 'workflow_trigger', results.message);
   res.json(results);

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useLang } from '../LangContext'
 import { api } from '../api'
 
 const CATEGORIES = [
@@ -11,6 +12,7 @@ const CATEGORIES = [
 ];
 
 export default function Knowledge() {
+  const { t } = useLang();
   const [items, setItems] = useState([]);
   const [filter, setFilter] = useState('');
   const [showAdd, setShowAdd] = useState(false);
@@ -40,7 +42,7 @@ export default function Knowledge() {
   return (
     <>
       <div className="page-header">
-        <div><h1 className="page-title">📚 知識庫</h1><p className="page-subtitle">案例庫、SOP、範本與經驗紀錄</p></div>
+        <div><h1 className="page-title">{t('page.knowledge')}</h1><p className="page-subtitle">案例庫、SOP、範本與經驗紀錄</p></div>
         <button className="btn btn-primary" onClick={() => setShowAdd(true)}>➕ 新增文件</button>
       </div>
 

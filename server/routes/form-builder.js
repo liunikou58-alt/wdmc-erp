@@ -12,7 +12,7 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
-const { auth, logActivity } = require('../middleware/auth');
+const { auth, logActivity, requirePermission } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -130,11 +130,11 @@ function generateAutoNumber(pattern, schemaId) {
    資料夾管理
    ═══════════════════════════════════════════ */
 
-router.get('/folders', auth, (req, res) => {
+router.get('/folders', auth, requirePermission('form_builder', 'view'),(req, res) => {
   res.json(db.getAll('form_folders').sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
 });
 
-router.post('/folders', auth, (req, res) => {
+router.post('/folders', auth, requirePermission('form_builder', 'create'),(req, res) => {
   const { name, icon, parent_id, menu_group } = req.body;
   const folder = db.insert('form_folders', {
     id: uuidv4(), name: name || '新資料夾', icon: icon || '📁',
@@ -144,11 +144,11 @@ router.post('/folders', auth, (req, res) => {
   res.status(201).json(folder);
 });
 
-router.put('/folders/:id', auth, (req, res) => {
+router.put('/folders/:id', auth, requirePermission('form_builder', 'edit'),(req, res) => {
   res.json(db.update('form_folders', req.params.id, req.body));
 });
 
-router.delete('/folders/:id', auth, (req, res) => {
+router.delete('/folders/:id', auth, requirePermission('form_builder', 'delete'),(req, res) => {
   db.remove('form_folders', req.params.id);
   res.json({ success: true });
 });
@@ -157,11 +157,11 @@ router.delete('/folders/:id', auth, (req, res) => {
    Schema 管理（表單設計）
    ═══════════════════════════════════════════ */
 
-router.get('/field-types', auth, (req, res) => {
+router.get('/field-types', auth, requirePermission('form_builder', 'view'),(req, res) => {
   res.json(FIELD_TYPES);
 });
 
-router.get('/schemas', auth, (req, res) => {
+router.get('/schemas', auth, requirePermission('form_builder', 'view'),(req, res) => {
   const { folder_id } = req.query;
   let schemas = db.getAll('form_schemas').filter(s => s.is_active !== false);
   if (folder_id) schemas = schemas.filter(s => s.folder_id === folder_id);
@@ -173,13 +173,13 @@ router.get('/schemas', auth, (req, res) => {
   res.json(enriched);
 });
 
-router.get('/schemas/:id', auth, (req, res) => {
+router.get('/schemas/:id', auth, requirePermission('form_builder', 'view'),(req, res) => {
   const schema = db.getById('form_schemas', req.params.id);
   if (!schema) return res.status(404).json({ error: '表單不存在' });
   res.json(schema);
 });
 
-router.post('/schemas', auth, (req, res) => {
+router.post('/schemas', auth, requirePermission('form_builder', 'create'),(req, res) => {
   const { name, icon, folder_id, description, fields, layout, subtables, permissions, auto_number } = req.body;
   const schema = db.insert('form_schemas', {
     id: uuidv4(), name: name || '新表單', icon: icon || '📋',
@@ -193,7 +193,7 @@ router.post('/schemas', auth, (req, res) => {
   res.status(201).json(schema);
 });
 
-router.put('/schemas/:id', auth, (req, res) => {
+router.put('/schemas/:id', auth, requirePermission('form_builder', 'edit'),(req, res) => {
   const schema = db.getById('form_schemas', req.params.id);
   if (!schema) return res.status(404).json({ error: '不存在' });
   const updates = { ...req.body, version: (schema.version || 1) + 1 };
@@ -201,7 +201,7 @@ router.put('/schemas/:id', auth, (req, res) => {
   res.json(db.update('form_schemas', req.params.id, updates));
 });
 
-router.delete('/schemas/:id', auth, (req, res) => {
+router.delete('/schemas/:id', auth, requirePermission('form_builder', 'delete'),(req, res) => {
   const records = db.find('form_records', r => r.schema_id === req.params.id);
   if (records.length > 0) {
     // 軟刪除：已有資料的表單不真的刪
@@ -213,7 +213,7 @@ router.delete('/schemas/:id', auth, (req, res) => {
 });
 
 // POST /schemas/:id/duplicate — 複製表單
-router.post('/schemas/:id/duplicate', auth, (req, res) => {
+router.post('/schemas/:id/duplicate', auth, requirePermission('form_builder', 'create'),(req, res) => {
   const src = db.getById('form_schemas', req.params.id);
   if (!src) return res.status(404).json({ error: '不存在' });
   const copy = db.insert('form_schemas', {
@@ -233,7 +233,7 @@ router.post('/schemas/:id/duplicate', auth, (req, res) => {
    Records CRUD（動態資料）
    ═══════════════════════════════════════════ */
 
-router.get('/data/:schemaId', auth, (req, res) => {
+router.get('/data/:schemaId', auth, requirePermission('form_builder', 'view'),(req, res) => {
   const schema = db.getById('form_schemas', req.params.schemaId);
   if (!schema) return res.status(404).json({ error: '表單不存在' });
 
@@ -267,13 +267,13 @@ router.get('/data/:schemaId', auth, (req, res) => {
   res.json(records.map(r => ({ ...r, created_by_name: creator(r.created_by) })));
 });
 
-router.get('/data/:schemaId/:id', auth, (req, res) => {
+router.get('/data/:schemaId/:id', auth, requirePermission('form_builder', 'view'),(req, res) => {
   const record = db.getById('form_records', req.params.id);
   if (!record || record.schema_id !== req.params.schemaId) return res.status(404).json({ error: '紀錄不存在' });
   res.json(record);
 });
 
-router.post('/data/:schemaId', auth, (req, res) => {
+router.post('/data/:schemaId', auth, requirePermission('form_builder', 'create'),(req, res) => {
   const schema = db.getById('form_schemas', req.params.schemaId);
   if (!schema) return res.status(404).json({ error: '表單不存在' });
 
@@ -302,7 +302,7 @@ router.post('/data/:schemaId', auth, (req, res) => {
   res.status(201).json(record);
 });
 
-router.put('/data/:schemaId/:id', auth, (req, res) => {
+router.put('/data/:schemaId/:id', auth, requirePermission('form_builder', 'edit'),(req, res) => {
   const record = db.getById('form_records', req.params.id);
   if (!record) return res.status(404).json({ error: '不存在' });
   if (record.is_locked) return res.status(403).json({ error: '紀錄已鎖定' });
@@ -321,7 +321,7 @@ router.put('/data/:schemaId/:id', auth, (req, res) => {
   res.json(updated);
 });
 
-router.delete('/data/:schemaId/:id', auth, (req, res) => {
+router.delete('/data/:schemaId/:id', auth, requirePermission('form_builder', 'delete'),(req, res) => {
   const record = db.getById('form_records', req.params.id);
   if (!record) return res.status(404).json({ error: '不存在' });
   if (record.is_locked) return res.status(403).json({ error: '紀錄已鎖定' });
@@ -330,11 +330,11 @@ router.delete('/data/:schemaId/:id', auth, (req, res) => {
 });
 
 // PUT /data/:schemaId/:id/lock — 鎖定紀錄
-router.put('/data/:schemaId/:id/lock', auth, (req, res) => {
+router.put('/data/:schemaId/:id/lock', auth, requirePermission('form_builder', 'edit'),(req, res) => {
   res.json(db.update('form_records', req.params.id, { is_locked: true }));
 });
 
-router.put('/data/:schemaId/:id/unlock', auth, (req, res) => {
+router.put('/data/:schemaId/:id/unlock', auth, requirePermission('form_builder', 'edit'),(req, res) => {
   res.json(db.update('form_records', req.params.id, { is_locked: false }));
 });
 
@@ -371,7 +371,7 @@ function computeFormulas(schema, data, subtableData) {
 }
 
 // POST /calculate — 即時公式計算（前端用）
-router.post('/calculate', auth, (req, res) => {
+router.post('/calculate', auth, requirePermission('form_builder', 'create'),(req, res) => {
   const { schema_id, data, subtable_data } = req.body;
   const schema = db.getById('form_schemas', schema_id);
   if (!schema) return res.status(404).json({ error: '表單不存在' });
@@ -383,7 +383,7 @@ router.post('/calculate', auth, (req, res) => {
    連結載入引擎
    ═══════════════════════════════════════════ */
 
-router.get('/link-load/:schemaId/:fieldKey', auth, (req, res) => {
+router.get('/link-load/:schemaId/:fieldKey', auth, requirePermission('form_builder', 'view'),(req, res) => {
   const { q } = req.query;
   const schema = db.getById('form_schemas', req.params.schemaId);
   if (!schema) return res.status(404).json({ error: '表單不存在' });
@@ -442,7 +442,7 @@ const PRINT_CSS = `
   @media print{body{padding:20px}}
 `;
 
-router.get('/print/:schemaId/:id', auth, (req, res) => {
+router.get('/print/:schemaId/:id', auth, requirePermission('form_builder', 'view'),(req, res) => {
   const schema = db.getById('form_schemas', req.params.schemaId);
   const record = db.getById('form_records', req.params.id);
   if (!schema || !record) return res.status(404).json({ error: '不存在' });
@@ -470,7 +470,7 @@ router.get('/print/:schemaId/:id', auth, (req, res) => {
   res.send(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${schema.name} - ${record.record_no || record.id.slice(0,8)}</title><style>${PRINT_CSS}</style></head><body>
     <div class="header"><h1>${schema.icon || '📋'} ${schema.name}</h1><div class="no">${record.record_no || ''} · ${new Date(record.created_at).toLocaleDateString('zh-TW')}</div></div>
     <div class="fields">${fieldsHtml}</div>${subtablesHtml}
-    <div class="footer">由 WDMC ERP 表單建構器生成 · ${new Date().toLocaleDateString('zh-TW')}</div>
+    <div class="footer">由 WDMC管理中心 表單建構器生成 · ${new Date().toLocaleDateString('zh-TW')}</div>
     <script>window.print()</script></body></html>`);
 });
 

@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useLang } from '../LangContext'
 import { api } from '../api';
 
 export default function RagicView() {
+  const { t } = useLang();
   const [folders, setFolders] = useState([]);
   const [schemas, setSchemas] = useState([]);
   const [selectedFolder, setSelectedFolder] = useState(null);
@@ -98,7 +100,7 @@ export default function RagicView() {
                   </div>
                 ))}
                 {filteredSchemas.length === 0 && (
-                  <div style={{padding:'8px 12px',fontSize:11,color:'#475569'}}>此資料夾無表單</div>
+                  <div style={{padding:'8px 12px',fontSize:11,color:'var(--c-text-muted)'}}>此資料夾無表單</div>
                 )}
               </div>
             )}
@@ -111,7 +113,7 @@ export default function RagicView() {
         {!selectedSchema ? (
           <div style={S.emptyState}>
             <div style={{fontSize:48,marginBottom:16}}>📋</div>
-            <h2 style={{color:'#e2e8f0',margin:0}}>瓦當麥可 ERP 系統</h2>
+            <h2 style={{color:'var(--c-border)',margin:0}}>瓦當麥可 ERP 系統</h2>
             <p style={{color:'#64748b',fontSize:14}}>從左側選擇資料夾和表單開始瀏覽</p>
             <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,marginTop:24,maxWidth:500}}>
               {folders.slice(0,6).map(f => {
@@ -119,7 +121,7 @@ export default function RagicView() {
                 return (
                   <div key={f.id} style={S.welcomeCard} onClick={() => { setSelectedFolder(f.id); }}>
                     <div style={{fontSize:24}}>{f.icon}</div>
-                    <div style={{fontSize:12,fontWeight:600,color:'#e2e8f0'}}>{f.name}</div>
+                    <div style={{fontSize:12,fontWeight:600,color:'var(--c-border)'}}>{f.name}</div>
                     <div style={{fontSize:11,color:'#64748b'}}>{count} 張表單</div>
                   </div>
                 );
@@ -132,7 +134,7 @@ export default function RagicView() {
             <div style={S.toolbar}>
               <div style={{display:'flex',alignItems:'center',gap:8}}>
                 <span style={{fontSize:20}}>{selectedSchema.icon}</span>
-                <h3 style={{margin:0,color:'#e2e8f0',fontSize:16}}>{selectedSchema.name}</h3>
+                <h3 style={{margin:0,color:'var(--c-border)',fontSize:16}}>{selectedSchema.name}</h3>
                 <span style={S.badge}>{filteredRecords.length} 筆</span>
               </div>
               <div style={{display:'flex',gap:8,alignItems:'center'}}>
@@ -165,7 +167,7 @@ export default function RagicView() {
                 </thead>
                 <tbody>
                   {filteredRecords.length === 0 ? (
-                    <tr><td colSpan={visibleFields.length + 1} style={{textAlign:'center',padding:40,color:'#475569'}}>無紀錄</td></tr>
+                    <tr><td colSpan={visibleFields.length + 1} style={{textAlign:'center',padding:40,color:'var(--c-text-muted)'}}>無紀錄</td></tr>
                   ) : filteredRecords.map((r, i) => (
                     <tr
                       key={r.id}
@@ -191,7 +193,7 @@ export default function RagicView() {
             {selectedRecord && (
               <div style={S.detailPanel}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
-                  <h4 style={{margin:0,color:'#e2e8f0'}}>📋 紀錄詳情 {selectedRecord.record_no && `(${selectedRecord.record_no})`}</h4>
+                  <h4 style={{margin:0,color:'var(--c-border)'}}>📋 紀錄詳情 {selectedRecord.record_no && `(${selectedRecord.record_no})`}</h4>
                   <button onClick={() => setSelectedRecord(null)} style={S.closeBtn}>✕</button>
                 </div>
                 <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(250px,1fr))',gap:8,maxHeight:300,overflow:'auto'}}>
@@ -202,7 +204,7 @@ export default function RagicView() {
                     return (
                       <div key={key} style={S.detailField}>
                         <div style={{fontSize:10,color:'#64748b',marginBottom:2}}>{key}</div>
-                        <div style={{fontSize:12,color:'#e2e8f0',wordBreak:'break-all'}}>{str.length > 100 ? str.slice(0,100)+'...' : str}</div>
+                        <div style={{fontSize:12,color:'var(--c-border)',wordBreak:'break-all'}}>{str.length > 100 ? str.slice(0,100)+'...' : str}</div>
                       </div>
                     );
                   })}
@@ -223,7 +225,7 @@ const S = {
   sheetItem: { display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', cursor: 'pointer', transition: 'all .15s' },
   toolbar: { padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.2)', flexWrap: 'wrap', gap: 8 },
   badge: { background: 'rgba(99,102,241,0.2)', color: '#818cf8', fontSize: 11, padding: '2px 8px', borderRadius: 10, fontWeight: 600 },
-  searchInput: { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '6px 10px', color: '#e2e8f0', fontSize: 12, width: 180, outline: 'none' },
+  searchInput: { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '6px 10px', color: 'var(--c-border)', fontSize: 12, width: 180, outline: 'none' },
   table: { width: '100%', borderCollapse: 'collapse', fontSize: 12 },
   th: { textAlign: 'left', padding: '8px 10px', color: '#94a3b8', fontWeight: 600, fontSize: 11, borderBottom: '1px solid rgba(255,255,255,0.08)', position: 'sticky', top: 0, background: '#1e293b', whiteSpace: 'nowrap' },
   td: { padding: '7px 10px', borderBottom: '1px solid rgba(255,255,255,0.04)', fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 200 },

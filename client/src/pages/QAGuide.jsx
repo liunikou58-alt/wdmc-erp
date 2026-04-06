@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLang } from '../LangContext'
 
 const SECTIONS = [
   {
@@ -63,6 +64,7 @@ const SECTIONS = [
 ];
 
 export default function QAGuide() {
+  const { t } = useLang();
   const [openSection, setOpenSection] = useState(0);
   const [openItems, setOpenItems] = useState({});
   const [search, setSearch] = useState('');
@@ -85,7 +87,7 @@ export default function QAGuide() {
   return (<>
     <div className="page-header">
       <div>
-        <h1 className="page-title">❓ 使用說明 & Q&A</h1>
+        <h1 className="page-title">{t('page.guide')}</h1>
         <p className="page-subtitle">WDMC ERP 系統操作流程與常見問題</p>
       </div>
     </div>
@@ -159,7 +161,7 @@ export default function QAGuide() {
                 </div>
                 {isOpen && (
                   <div style={S.answer}>
-                    <span style={{ color: '#10b981', fontWeight: 700, marginRight: 8 }}>A</span>
+                    <span style={{ color: 'var(--c-success)', fontWeight: 700, marginRight: 8 }}>A</span>
                     <div style={{ flex: 1, fontSize: 13, lineHeight: 1.8, whiteSpace: 'pre-line' }}>{item.a}</div>
                   </div>
                 )}

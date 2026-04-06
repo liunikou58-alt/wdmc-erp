@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useLang } from '../LangContext'
 import { api } from '../api';
 
 const CATS = ['A活動企劃','B設計','C印刷','D主持人','E表演','F交通','G設備','H佈置','I其他'];
 const FMT = n => n != null ? `$${Number(n).toLocaleString()}` : '$0';
 
 export default function ProfitLoss() {
+  const { t } = useLang();
   const [items, setItems] = useState([]);
   const [stats, setStats] = useState({});
   const [view, setView] = useState('exec'); // exec | accounting
@@ -73,7 +75,7 @@ export default function ProfitLoss() {
   return (<>
     <div className="page-header">
       <div>
-        <h1 className="page-title">📈 活動損益表</h1>
+        <h1 className="page-title">{t('page.profitLoss')}</h1>
         <p className="page-subtitle">追蹤每案報價、成本、毛利 — 對應 Ragic 損益核心</p>
       </div>
       <button className="btn btn-primary" onClick={() => { setShowAdd(true); setSelected(null); setForm({}); }}>
@@ -87,9 +89,9 @@ export default function ProfitLoss() {
         { label: '活動總數', value: stats.total_events || 0, icon: '📋', bg: 'var(--c-primary-light)' },
         { label: '進行中', value: stats.active_events || 0, icon: '🔄', bg: 'var(--c-success-light)' },
         { label: '已結案', value: stats.closed_events || 0, icon: '✅', bg: 'var(--c-info-light)' },
-        { label: '總報價', value: FMT(stats.total_quote), icon: '💰', bg: '#fef3c7' },
-        { label: '總結案金額', value: FMT(stats.total_settlement), icon: '🏦', bg: '#dbeafe' },
-        { label: '淨利潤', value: FMT(stats.total_profit), icon: '📊', bg: '#ede9fe' },
+        { label: '總報價', value: FMT(stats.total_quote), icon: '💰', bg: 'var(--c-warning-light)' },
+        { label: '總結案金額', value: FMT(stats.total_settlement), icon: '🏦', bg: 'var(--c-info-light)' },
+        { label: '淨利潤', value: FMT(stats.total_profit), icon: '📊', bg: 'var(--c-primary-light)' },
         { label: '平均毛利率', value: `${stats.avg_margin || 0}%`, icon: '📈', bg: '#fce7f3' },
       ].map((kpi, i) => (
         <div key={i} className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -138,18 +140,18 @@ export default function ProfitLoss() {
             <tr key={pl.id} style={{ borderBottom: '1px solid var(--c-border)', cursor: 'pointer' }} onClick={() => openDetail(pl)}>
               <td style={TD}><span style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--c-primary)' }}>{pl.pl_no}</span></td>
               <td style={TD}><strong>{pl.event_name}</strong></td>
-              <td style={TD}><span style={{ padding: '2px 6px', borderRadius: 4, fontSize: 10, background: pl.event_type === '標案' ? '#dbeafe' : '#fef3c7', fontWeight: 600 }}>{pl.event_type || '活動'}</span></td>
+              <td style={TD}><span style={{ padding: '2px 6px', borderRadius: 4, fontSize: 10, background: pl.event_type === '標案' ? 'var(--c-info-light)' : 'var(--c-warning-light)', fontWeight: 600 }}>{pl.event_type || '活動'}</span></td>
               <td style={TD}>{pl.manager}</td>
               <td style={TD}>{pl.event_start_date?.slice(0,10)}</td>
               <td style={{...TD, textAlign: 'right', fontWeight: 600}}>{FMT(pl.total_quote)}</td>
               {view === 'accounting' && <>
                 <td style={{...TD, textAlign: 'right'}}>{FMT(pl.settlement_amount)}</td>
-                <td style={{...TD, textAlign: 'right', color: pl.deposit_status === '已收' ? '#10b981' : '#f59e0b'}}>{FMT(pl.deposit_amount)}</td>
-                <td style={{...TD, textAlign: 'right', color: pl.final_payment_status === '已收' ? '#10b981' : '#f59e0b'}}>{FMT(pl.final_payment_amount)}</td>
+                <td style={{...TD, textAlign: 'right', color: pl.deposit_status === '已收' ? 'var(--c-success)' : 'var(--c-warning)'}}>{FMT(pl.deposit_amount)}</td>
+                <td style={{...TD, textAlign: 'right', color: pl.final_payment_status === '已收' ? 'var(--c-success)' : 'var(--c-warning)'}}>{FMT(pl.final_payment_amount)}</td>
               </>}
-              <td style={{...TD, textAlign: 'right', color: '#ef4444'}}>{FMT(pl.total_cost)}</td>
-              <td style={{...TD, textAlign: 'right', fontWeight: 700, color: pl.profit >= 0 ? '#10b981' : '#ef4444'}}>{FMT(pl.profit)}</td>
-              <td style={{...TD, textAlign: 'right'}}><span style={{ padding: '2px 6px', borderRadius: 4, fontSize: 10, background: pl.margin >= 20 ? '#d1fae5' : pl.margin >= 0 ? '#fef3c7' : '#fee2e2', fontWeight: 600 }}>{pl.margin}%</span></td>
+              <td style={{...TD, textAlign: 'right', color: 'var(--c-danger)'}}>{FMT(pl.total_cost)}</td>
+              <td style={{...TD, textAlign: 'right', fontWeight: 700, color: pl.profit >= 0 ? 'var(--c-success)' : 'var(--c-danger)'}}>{FMT(pl.profit)}</td>
+              <td style={{...TD, textAlign: 'right'}}><span style={{ padding: '2px 6px', borderRadius: 4, fontSize: 10, background: pl.margin >= 20 ? '#d1fae5' : pl.margin >= 0 ? 'var(--c-warning-light)' : 'var(--c-danger-light)', fontWeight: 600 }}>{pl.margin}%</span></td>
               <td style={{...TD, textAlign: 'center'}}>
                 <button onClick={e => { e.stopPropagation(); handleClose(pl); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>{pl.is_closed ? '✅' : '⬜'}</button>
               </td>
@@ -175,17 +177,17 @@ export default function ProfitLoss() {
         {/* 損益概覽 */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
           <div className="card" style={{ padding: 12, textAlign: 'center' }}><div style={{ fontSize: 11, color: 'var(--c-text-muted)' }}>報價</div><div style={{ fontSize: 16, fontWeight: 700 }}>{FMT(selected.total_quote)}</div></div>
-          <div className="card" style={{ padding: 12, textAlign: 'center' }}><div style={{ fontSize: 11, color: 'var(--c-text-muted)' }}>成本</div><div style={{ fontSize: 16, fontWeight: 700, color: '#ef4444' }}>{FMT(selected.total_cost)}</div></div>
-          <div className="card" style={{ padding: 12, textAlign: 'center' }}><div style={{ fontSize: 11, color: 'var(--c-text-muted)' }}>毛利 ({selected.margin}%)</div><div style={{ fontSize: 16, fontWeight: 700, color: selected.profit >= 0 ? '#10b981' : '#ef4444' }}>{FMT(selected.profit)}</div></div>
+          <div className="card" style={{ padding: 12, textAlign: 'center' }}><div style={{ fontSize: 11, color: 'var(--c-text-muted)' }}>成本</div><div style={{ fontSize: 16, fontWeight: 700, color: 'var(--c-danger)' }}>{FMT(selected.total_cost)}</div></div>
+          <div className="card" style={{ padding: 12, textAlign: 'center' }}><div style={{ fontSize: 11, color: 'var(--c-text-muted)' }}>毛利 ({selected.margin}%)</div><div style={{ fontSize: 16, fontWeight: 700, color: selected.profit >= 0 ? 'var(--c-success)' : 'var(--c-danger)' }}>{FMT(selected.profit)}</div></div>
         </div>
 
         {/* 收款追蹤 */}
         <div className="card" style={{ padding: 14, marginBottom: 16 }}>
           <h4 style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>💰 收款追蹤</h4>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 12 }}>
-            <div>訂金：{FMT(selected.deposit_amount)} <span style={{ color: selected.deposit_status === '已收' ? '#10b981' : '#f59e0b', fontWeight: 600 }}>({selected.deposit_status || '未設'})</span></div>
-            <div>尾款：{FMT(selected.final_payment_amount)} <span style={{ color: selected.final_payment_status === '已收' ? '#10b981' : '#f59e0b', fontWeight: 600 }}>({selected.final_payment_status || '未設'})</span></div>
-            <div>發票：{selected.invoice_no || '—'} <span style={{ color: '#6366f1', fontWeight: 600 }}>({selected.invoice_status || '未開'})</span></div>
+            <div>訂金：{FMT(selected.deposit_amount)} <span style={{ color: selected.deposit_status === '已收' ? 'var(--c-success)' : 'var(--c-warning)', fontWeight: 600 }}>({selected.deposit_status || '未設'})</span></div>
+            <div>尾款：{FMT(selected.final_payment_amount)} <span style={{ color: selected.final_payment_status === '已收' ? 'var(--c-success)' : 'var(--c-warning)', fontWeight: 600 }}>({selected.final_payment_status || '未設'})</span></div>
+            <div>發票：{selected.invoice_no || '—'} <span style={{ color: 'var(--c-primary)', fontWeight: 600 }}>({selected.invoice_status || '未開'})</span></div>
             <div>結案金額：{FMT(selected.settlement_amount)}</div>
           </div>
         </div>
@@ -206,12 +208,12 @@ export default function ProfitLoss() {
             <tbody>
               {details.map(d => (
                 <tr key={d.id} style={{ borderBottom: '1px solid var(--c-border)' }}>
-                  <td style={TD}><span style={{ padding: '1px 5px', borderRadius: 3, fontSize: 10, background: '#f1f5f9' }}>{d.category}</span></td>
+                  <td style={TD}><span style={{ padding: '1px 5px', borderRadius: 3, fontSize: 10, background: 'var(--c-bg-elevated)' }}>{d.category}</span></td>
                   <td style={TD}>{d.item_name}</td>
                   <td style={{...TD, textAlign:'right'}}>{d.qty}</td>
                   <td style={{...TD, textAlign:'right'}}>{FMT(d.quote_total)}</td>
-                  <td style={{...TD, textAlign:'right', color:'#ef4444'}}>{FMT(d.cost_total)}</td>
-                  <td style={{...TD, textAlign:'right', color: (d.quote_total-d.cost_total) >= 0 ? '#10b981' : '#ef4444', fontWeight:600}}>{FMT(d.quote_total - d.cost_total)}</td>
+                  <td style={{...TD, textAlign:'right', color:'var(--c-danger)'}}>{FMT(d.cost_total)}</td>
+                  <td style={{...TD, textAlign:'right', color: (d.quote_total-d.cost_total) >= 0 ? 'var(--c-success)' : 'var(--c-danger)', fontWeight:600}}>{FMT(d.quote_total - d.cost_total)}</td>
                 </tr>
               ))}
               {!details.length && <tr><td colSpan={6} style={{ textAlign: 'center', padding: 20, color: 'var(--c-text-muted)', fontSize: 11 }}>尚無明細</td></tr>}
@@ -230,11 +232,11 @@ export default function ProfitLoss() {
             return (<>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, fontSize: 12, marginBottom: 8 }}>
                 <div>預算: <b>{FMT(budget)}</b></div>
-                <div>已用: <b style={{ color: '#ef4444' }}>{FMT(used)}</b></div>
-                <div>剩餘: <b style={{ color: remain >= 0 ? '#10b981' : '#ef4444' }}>{FMT(remain)}</b></div>
+                <div>已用: <b style={{ color: 'var(--c-danger)' }}>{FMT(used)}</b></div>
+                <div>剩餘: <b style={{ color: remain >= 0 ? 'var(--c-success)' : 'var(--c-danger)' }}>{FMT(remain)}</b></div>
               </div>
-              <div style={{ background: '#f1f5f9', borderRadius: 6, height: 16, overflow: 'hidden', position: 'relative' }}>
-                <div style={{ width: `${Math.min(pct, 100)}%`, height: '100%', background: pct > 90 ? '#ef4444' : pct > 70 ? '#f59e0b' : '#10b981', borderRadius: 6, transition: 'width 0.3s' }}></div>
+              <div style={{ background: 'var(--c-bg-elevated)', borderRadius: 6, height: 16, overflow: 'hidden', position: 'relative' }}>
+                <div style={{ width: `${Math.min(pct, 100)}%`, height: '100%', background: pct > 90 ? 'var(--c-danger)' : pct > 70 ? 'var(--c-warning)' : 'var(--c-success)', borderRadius: 6, transition: 'width 0.3s' }}></div>
                 <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', fontSize: 10, fontWeight: 700, lineHeight: '16px' }}>{pct}%</div>
               </div>
             </>);
@@ -250,8 +252,8 @@ export default function ProfitLoss() {
               const active = i <= stageIdx;
               return (
                 <div key={s} style={{ flex: 1, padding: '5px 2px', borderRadius: 4, fontSize: 10, fontWeight: 600, textAlign: 'center',
-                  background: active ? (i === 4 ? '#dcfce7' : i === 3 ? '#dbeafe' : '#fef3c7') : '#f1f5f9',
-                  color: active ? (i === 4 ? '#166534' : i === 3 ? '#1d4ed8' : '#92400e') : '#94a3b8',
+                  background: active ? (i === 4 ? 'var(--c-success-light)' : i === 3 ? 'var(--c-info-light)' : 'var(--c-warning-light)') : 'var(--c-bg-elevated)',
+                  color: active ? (i === 4 ? 'var(--c-success)' : i === 3 ? 'var(--c-info)' : 'var(--c-warning)') : '#94a3b8',
                 }}>{s}</div>
               );
             })}
@@ -266,7 +268,7 @@ export default function ProfitLoss() {
               <div>押標金: <b>{FMT(selected.bid_bond)}</b></div>
               <div>履約保證金: <b>{FMT(selected.performance_bond)}</b></div>
               <div>活動押金: <b>{FMT(selected.event_deposit)}</b></div>
-              <div>狀態: <b style={{ color: selected.bond_status === '已退還' ? '#10b981' : '#f59e0b' }}>{selected.bond_status || '待退還'}</b></div>
+              <div>狀態: <b style={{ color: selected.bond_status === '已退還' ? 'var(--c-success)' : 'var(--c-warning)' }}>{selected.bond_status || '待退還'}</b></div>
               <div>預計退還: <b>{selected.bond_return_date || '—'}</b></div>
             </div>
           </div>
@@ -280,10 +282,10 @@ export default function ProfitLoss() {
             const allocatable = Math.round(profit * 0.1);
             return (
               <div style={{ fontSize: 12 }}>
-                <div style={{ marginBottom: 6 }}>可分配獎金 (利潤10%): <b style={{ color: '#6366f1' }}>{FMT(allocatable)}</b></div>
+                <div style={{ marginBottom: 6 }}>可分配獎金 (利潤10%): <b style={{ color: 'var(--c-primary)' }}>{FMT(allocatable)}</b></div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4 }}>
                   {[{r:'企劃',p:10},{r:'執行',p:30},{r:'協助',p:20},{r:'業務',p:15},{r:'行政',p:5}].map(b => (
-                    <div key={b.r} style={{ padding: '4px 6px', borderRadius: 4, background: '#f8fafc', textAlign: 'center' }}>
+                    <div key={b.r} style={{ padding: '4px 6px', borderRadius: 4, background: 'var(--c-bg-hover)', textAlign: 'center' }}>
                       <div style={{ fontSize: 10, color: 'var(--c-text-muted)' }}>{b.r} ({b.p}%)</div>
                       <div style={{ fontSize: 12, fontWeight: 600 }}>{FMT(Math.round(allocatable * b.p / 100))}</div>
                     </div>
@@ -302,8 +304,8 @@ export default function ProfitLoss() {
             <button className="btn btn-sm" onClick={() => handleLinkPurchase(selected)}>🛒 匯入採購成本</button>
             <a href={api.exportPLDetails(selected.id)} target="_blank" rel="noreferrer" className="btn btn-sm">📊 匯出明細</a>
           </div>
-          {selected.labor_imported && <div style={{ fontSize: 11, color: '#10b981', marginTop: 6 }}>✅ 勞報已匯入 {FMT(selected.labor_cost)}</div>}
-          {selected.purchase_imported && <div style={{ fontSize: 11, color: '#10b981' }}>✅ 採購已匯入 {FMT(selected.purchase_cost)}</div>}
+          {selected.labor_imported && <div style={{ fontSize: 11, color: 'var(--c-success)', marginTop: 6 }}>✅ 勞報已匯入 {FMT(selected.labor_cost)}</div>}
+          {selected.purchase_imported && <div style={{ fontSize: 11, color: 'var(--c-success)' }}>✅ 採購已匯入 {FMT(selected.purchase_cost)}</div>}
         </div>
       </div>
     )}

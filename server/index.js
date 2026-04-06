@@ -45,11 +45,21 @@ app.use('/api/form-builder', require('./routes/form-builder'));
 app.use('/api/profit-loss', require('./routes/profit-loss'));
 app.use('/api/purchase-orders', require('./routes/purchase-orders'));
 app.use('/api/export', require('./routes/export'));
+app.use('/api/journal', require('./routes/journal'));
+app.use('/api/events', require('./routes/events'));
+app.use('/api/bonuses', require('./routes/bonuses'));
+app.use('/api/public-share', require('./routes/public-share'));
+app.use('/api/esign', require('./routes/esign'));
+app.use('/api/daily-reports', require('./routes/daily-reports'));
+app.use('/api/vehicle-bookings', require('./routes/vehicle-bookings'));
+app.use('/api/attendance', require('./routes/attendance'));
+app.use('/api/search', require('./routes/search'));
+app.use('/api/webhook', require('./routes/webhook'));
 
 // Health (with WS online count)
 const ws = require('./ws');
 app.get('/api/health', (req, res) => res.json({
-  status: 'ok', system: 'WDMC ERP',
+  status: 'ok', system: 'WDMC管理中心',
   time: new Date().toISOString(),
   online: ws.getOnlineCount(),
   websocket: true
@@ -78,8 +88,13 @@ const server = http.createServer(app);
 ws.init(server);
 
 server.listen(PORT, () => {
-  console.log(`\n🏢 WDMC ERP 系統已啟動`);
+  console.log(`\n🏢 WDMC管理中心 系統已啟動`);
   console.log(`   http://localhost:${PORT}`);
   console.log(`   WebSocket: ws://localhost:${PORT}/ws`);
   console.log(`   Health: http://localhost:${PORT}/api/health\n`);
+
+  // 啟動每日工作會報提醒排程
+  const { startDailyReportScheduler } = require('./notification-engine');
+  const db = require('./db');
+  startDailyReportScheduler(db);
 });

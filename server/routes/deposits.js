@@ -6,12 +6,12 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
-const { auth, logActivity } = require('../middleware/auth');
+const { auth, logActivity, requirePermission } = require('../middleware/auth');
 
 const router = express.Router();
 
 // GET /api/deposits
-router.get('/', auth, (req, res) => {
+router.get('/', auth, requirePermission('deposits', 'view'),(req, res) => {
   const { project_id, status } = req.query;
   let items = db.getAll('deposits');
   if (project_id) items = items.filter(d => d.project_id === project_id);
@@ -24,7 +24,7 @@ router.get('/', auth, (req, res) => {
   res.json(enriched);
 });
 
-router.get('/stats', auth, (req, res) => {
+router.get('/stats', auth, requirePermission('deposits', 'view'),(req, res) => {
   const all = db.getAll('deposits');
   res.json({
     total: all.length,
@@ -36,13 +36,13 @@ router.get('/stats', auth, (req, res) => {
   });
 });
 
-router.get('/:id', auth, (req, res) => {
+router.get('/:id', auth, requirePermission('deposits', 'view'),(req, res) => {
   const item = db.getById('deposits', req.params.id);
   if (!item) return res.status(404).json({ error: '不存在' });
   res.json(item);
 });
 
-router.post('/', auth, (req, res) => {
+router.post('/', auth, requirePermission('deposits', 'create'),(req, res) => {
   const { project_id, venue_name, deposit_amount, bond_amount, paid_date, return_date, notes } = req.body;
   const ym = `${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}`;
   const seq = db.getAll('deposits').filter(d => (d.deposit_no || '').includes(ym)).length + 1;
@@ -60,13 +60,13 @@ router.post('/', auth, (req, res) => {
   res.status(201).json(item);
 });
 
-router.put('/:id', auth, (req, res) => {
+router.put('/:id', auth, requirePermission('deposits', 'edit'),(req, res) => {
   const updated = db.update('deposits', req.params.id, req.body);
   if (!updated) return res.status(404).json({ error: '不存在' });
   res.json(updated);
 });
 
-router.put('/:id/return', auth, (req, res) => {
+router.put('/:id/return', auth, requirePermission('deposits', 'edit'),(req, res) => {
   const item = db.getById('deposits', req.params.id);
   if (!item) return res.status(404).json({ error: '不存在' });
   const updated = db.update('deposits', req.params.id, {
@@ -76,7 +76,7 @@ router.put('/:id/return', auth, (req, res) => {
   res.json(updated);
 });
 
-router.delete('/:id', auth, (req, res) => {
+router.delete('/:id', auth, requirePermission('deposits', 'delete'),(req, res) => {
   db.remove('deposits', req.params.id);
   res.json({ success: true });
 });

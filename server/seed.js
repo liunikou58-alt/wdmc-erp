@@ -1,35 +1,51 @@
+/**
+ * WDMC-ERP — 種子資料（升級版 6 角色）
+ */
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const db = require('./db');
+const { DEPARTMENT_MAP } = require('../../shared/permissions');
 
 module.exports = function seed() {
+  // 建立部門
   if (db.getAll('departments').length === 0) {
-    const depts = [
-      { name: '管理部', icon: '👑', sort: 1 },
-      { name: '企劃部', icon: '📋', sort: 2 },
-      { name: '業務部', icon: '🤝', sort: 3 },
-      { name: '音響組', icon: '🔊', sort: 4 },
-      { name: '燈光組', icon: '💡', sort: 5 },
-      { name: '輸出設計組', icon: '🎨', sort: 6 },
-      { name: '視訊組', icon: '📹', sort: 7 },
-      { name: '現場執行組', icon: '🏗️', sort: 8 },
-      { name: '財務部', icon: '💰', sort: 9 },
-      { name: '採購部', icon: '📦', sort: 10 },
-    ];
-    depts.forEach(d => db.insert('departments', { id: uuidv4(), ...d }));
-    console.log('[Seed] 建立 10 個部門');
-  }
-
-  if (db.getAll('users').length === 0) {
-    const mgmtDept = db.findOne('departments', d => d.name === '管理部');
-    db.insert('users', {
-      id: uuidv4(), username: 'admin', password_hash: bcrypt.hashSync('admin123', 10),
-      display_name: '系統管理員', email: 'admin@wdmc.com', role: 'admin',
-      department_id: mgmtDept?.id || null, is_active: true, avatar_color: '#6366f1'
+    Object.entries(DEPARTMENT_MAP).forEach(([key, val]) => {
+      db.insert('departments', { id: uuidv4(), key, name: val.name, icon: val.icon, sort: val.sort });
     });
-    console.log('[Seed] 建立管理員 admin / admin123');
+    console.log(`[Seed] 建立 ${Object.keys(DEPARTMENT_MAP).length} 個部門`);
   }
 
+  // 建立預設帳號
+  if (db.getAll('users').length === 0) {
+    const pw = bcrypt.hashSync('wdmc2026', 10);
+    const getDeptId = (key) => {
+      const d = db.findOne('departments', d => d.key === key || d.name === DEPARTMENT_MAP[key]?.name);
+      return d?.id || null;
+    };
+
+    const colors = ['#6366f1', '#f59e0b', '#22c55e', '#ef4444', '#06b6d4', '#ec4899', '#8b5cf6', '#14b8a6'];
+    const defaultUsers = [
+      { username: 'ceo', password: 'wdmc2026', display_name: '執行長', role: 'ceo', dept: 'management', email: 'ceo@wdmc.com' },
+      { username: 'director', password: 'wdmc2026', display_name: '總監', role: 'director', dept: 'management', email: 'director@wdmc.com' },
+      { username: 'admin00', password: 'wdmc00', display_name: '企畫主管', role: 'manager', dept: 'planning', email: 'pm@wdmc.com' },
+      { username: 'admin01', password: 'wdmc01', display_name: '資深設計師', role: 'senior', dept: 'design', email: 'design@wdmc.com' },
+      { username: 'admin02', password: 'wdmc02', display_name: '行銷專員', role: 'staff', dept: 'marketing', email: 'mkt@wdmc.com' },
+      { username: 'admin03', password: 'wdmc03', display_name: '倉管', role: 'staff', dept: 'logistics', email: 'warehouse@wdmc.com' },
+      { username: 'admin04', password: 'wdmc04', display_name: '業務代表', role: 'staff', dept: 'sales', email: 'sales@wdmc.com' },
+      { username: 'admin05', password: 'wdmc05', display_name: '企畫助理', role: 'assistant', dept: 'planning', email: 'assist@wdmc.com' },
+    ];
+    defaultUsers.forEach((u, i) => {
+      db.insert('users', {
+        id: uuidv4(), username: u.username, password_hash: bcrypt.hashSync(u.password, 10),
+        display_name: u.display_name, email: u.email,
+        role: u.role, department_id: getDeptId(u.dept), is_active: true,
+        avatar_color: colors[i % colors.length],
+      });
+    });
+    console.log(`[Seed] 建立 ${defaultUsers.length} 個帳號`);
+  }
+
+  // 公司設定
   if (db.getAll('system_settings').length === 0) {
     db.insert('system_settings', {
       id: uuidv4(), key: 'company', value: {
@@ -37,6 +53,6 @@ module.exports = function seed() {
         tax_id: '', address: '', phone: '', email: '', logo: ''
       }
     });
-    console.log('[Seed] 建立公司基本設定');
+    console.log('[Seed] 建立公司設定');
   }
 };

@@ -9,7 +9,8 @@ const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const path = require('path');
 const db = require('../db');
-const { auth, logActivity } = require('../middleware/auth');
+const { auth, logActivity, requirePermission } = require('../middleware/auth');
+const s3Service = require('../services/s3');
 
 const router = express.Router();
 
@@ -18,7 +19,7 @@ const MAX_SIZE = 20 * 1024 * 1024; // 20MB
 const ALLOWED_EXT = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.mp4', '.zip'];
 
 // GET /api/files — 檔案列表
-router.get('/', auth, (req, res) => {
+router.get('/', auth, requirePermission('files', 'view'),(req, res) => {
   const { project_id, category, entity_type, entity_id } = req.query;
   let files = db.getAll('files');
   if (project_id) files = files.filter(f => f.project_id === project_id);
@@ -34,9 +35,9 @@ router.get('/', auth, (req, res) => {
   res.json(enriched);
 });
 
-// POST /api/files/upload — 上傳檔案（base64 方式，避免 multer 依賴）
-router.post('/upload', auth, express.json({ limit: '25mb' }), (req, res) => {
-  const { filename, data, category, project_id, entity_type, entity_id, description } = req.body;
+// POST /api/files/upload — 上傳檔案（base64 方式，支援 S3）
+router.post('/upload', auth, requirePermission('files', 'create'),express.json({ limit: '25mb' }), async (req, res) => {
+  const { filename, data, category, project_id, entity_type, entity_id, description, parent_file_id } = req.body;
   if (!filename || !data) return res.status(400).json({ error: '缺少檔案資料' });
 
   const ext = path.extname(filename).toLowerCase();
@@ -46,27 +47,70 @@ router.post('/upload', auth, express.json({ limit: '25mb' }), (req, res) => {
   const buffer = Buffer.from(data, 'base64');
   if (buffer.length > MAX_SIZE) return res.status(400).json({ error: '檔案過大（上限 20MB）' });
 
-  // 儲存
   const cat = category || 'general';
-  const dir = path.join(UPLOAD_DIR, cat);
-  fs.mkdirSync(dir, { recursive: true });
-  const savedName = `${Date.now()}-${uuidv4().slice(0, 8)}${ext}`;
-  fs.writeFileSync(path.join(dir, savedName), buffer);
+  
+  try {
+    // 透過 S3 服務上傳 (若未設定則自動 Fallback 到 Local Storage)
+    const fileUrl = await s3Service.uploadFile(buffer, filename, cat);
+    const savedName = fileUrl.split('/').pop() || filename;
 
-  const file = db.insert('files', {
-    id: uuidv4(), original_name: filename, saved_name: savedName,
-    path: `/uploads/${cat}/${savedName}`, size: buffer.length, ext,
-    category: cat, mime_type: getMime(ext),
-    project_id: project_id || null, entity_type: entity_type || null, entity_id: entity_id || null,
-    description: description || '', uploaded_by: req.user.id
-  });
+    const file = db.insert('files', {
+      id: uuidv4(), original_name: filename, saved_name: savedName,
+      path: fileUrl, size: buffer.length, ext,
+      category: cat, mime_type: getMime(ext), parent_file_id: parent_file_id || null,
+      project_id: project_id || null, entity_type: entity_type || null, entity_id: entity_id || null,
+      description: description || '', uploaded_by: req.user.id
+    });
 
-  logActivity(db, project_id, req.user.id, 'upload_file', `上傳檔案 ${filename}`);
-  res.status(201).json(file);
+    // 如果有 parent_file_id，表示上傳新版本，把舊版本標示為 is_old_version
+    if (parent_file_id) {
+      db.update('files', parent_file_id, { has_newer_version: true });
+    }
+
+    logActivity(db, project_id, req.user.id, 'upload_file', `上傳檔案 ${filename}`);
+    res.status(201).json(file);
+  } catch (error) {
+    console.error('上傳檔案失敗:', error);
+    res.status(500).json({ error: '檔案上傳過程發生錯誤' });
+  }
+});
+
+// GET /api/files/:id/versions — 取得檔案的所有版本歷史
+router.get('/:id/versions', auth, requirePermission('files', 'view'),(req, res) => {
+  const file = db.getById('files', req.params.id);
+  if (!file) return res.status(404).json({ error: '檔案不存在' });
+  
+  // 找出所有同系譜的檔案 (parent_file_id 鏈)
+  const allFiles = db.getAll('files');
+  let currentFile = file;
+  const versions = [];
+  
+  // 往上找根節點
+  let traceCount = 0;
+  while (currentFile.parent_file_id && traceCount < 50) {
+    const parent = allFiles.find(f => f.id === currentFile.parent_file_id);
+    if (!parent) break;
+    currentFile = parent;
+    traceCount++;
+  }
+  
+  // 往下找所有子節點
+  const findChildren = (node) => {
+    const enriched = { ...node, uploader_name: db.getById('users', node.uploaded_by)?.display_name || '' };
+    versions.push(enriched);
+    const children = allFiles.filter(f => f.parent_file_id === node.id);
+    children.forEach(c => findChildren(c));
+  };
+  findChildren(currentFile);
+  
+  // 按時間排序（最新在上）
+  versions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  
+  res.json(versions);
 });
 
 // DELETE /api/files/:id
-router.delete('/:id', auth, (req, res) => {
+router.delete('/:id', auth, requirePermission('files', 'delete'),(req, res) => {
   const file = db.getById('files', req.params.id);
   if (!file) return res.status(404).json({ error: '檔案不存在' });
   // 刪除實體檔案

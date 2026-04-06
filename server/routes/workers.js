@@ -7,19 +7,19 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
-const { auth, logActivity } = require('../middleware/auth');
+const { auth, logActivity, requirePermission } = require('../middleware/auth');
 
 const router = express.Router();
 
 // GET /api/workers — 工作人員列表
-router.get('/', auth, (req, res) => {
+router.get('/', auth, requirePermission('workers', 'view'),(req, res) => {
   const workers = db.getAll('workers')
     .sort((a, b) => (a.name || '').localeCompare(b.name, 'zh-TW'));
   res.json(workers);
 });
 
 // GET /api/workers/search?q=xxx — 搜尋（autocomplete / 連結載入用）
-router.get('/search', auth, (req, res) => {
+router.get('/search', auth, requirePermission('workers', 'view'),(req, res) => {
   const { q } = req.query;
   if (!q || q.length < 1) return res.json([]);
   const keyword = q.toLowerCase();
@@ -32,14 +32,14 @@ router.get('/search', auth, (req, res) => {
 });
 
 // GET /api/workers/:id
-router.get('/:id', auth, (req, res) => {
+router.get('/:id', auth, requirePermission('workers', 'view'),(req, res) => {
   const worker = db.getById('workers', req.params.id);
   if (!worker) return res.status(404).json({ error: '工作人員不存在' });
   res.json(worker);
 });
 
 // POST /api/workers — 新增工作人員
-router.post('/', auth, (req, res) => {
+router.post('/', auth, requirePermission('workers', 'create'),(req, res) => {
   const { name, id_number, birthday, address, phone, bank_account, bank_name,
     id_photo_front, id_photo_back, signature } = req.body;
   if (!name) return res.status(400).json({ error: '缺少姓名' });
@@ -71,14 +71,14 @@ router.post('/', auth, (req, res) => {
 });
 
 // PUT /api/workers/:id — 更新工作人員
-router.put('/:id', auth, (req, res) => {
+router.put('/:id', auth, requirePermission('workers', 'edit'),(req, res) => {
   const updated = db.update('workers', req.params.id, req.body);
   if (!updated) return res.status(404).json({ error: '工作人員不存在' });
   res.json(updated);
 });
 
 // DELETE /api/workers/:id
-router.delete('/:id', auth, (req, res) => {
+router.delete('/:id', auth, requirePermission('workers', 'delete'),(req, res) => {
   // 檢查是否在勞報單中被引用
   const refs = db.find('labor_report_workers', lrw => lrw.worker_id === req.params.id);
   if (refs.length > 0) {

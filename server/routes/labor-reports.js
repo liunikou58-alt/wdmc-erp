@@ -13,7 +13,7 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
-const { auth, logActivity } = require('../middleware/auth');
+const { auth, logActivity, requirePermission } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -53,7 +53,7 @@ function recalcReport(reportId) {
 /* ── 勞報單 CRUD ── */
 
 // GET /api/labor-reports — 勞報單列表
-router.get('/', auth, (req, res) => {
+router.get('/', auth, requirePermission('labor_reports', 'view'),(req, res) => {
   const { type, is_closed, project_id } = req.query;
   let reports = db.getAll('labor_reports');
 
@@ -76,7 +76,7 @@ router.get('/', auth, (req, res) => {
 });
 
 // GET /api/labor-reports/stats — 統計
-router.get('/stats', auth, (req, res) => {
+router.get('/stats', auth, requirePermission('labor_reports', 'view'),(req, res) => {
   const all = db.getAll('labor_reports');
   const workers = db.getAll('labor_report_workers');
   const totalAmount = all.reduce((s, r) => s + (Number(r.total_amount) || 0), 0);
@@ -90,7 +90,7 @@ router.get('/stats', auth, (req, res) => {
 });
 
 // GET /api/labor-reports/:id — 詳情（含工作人員子表格）
-router.get('/:id', auth, (req, res) => {
+router.get('/:id', auth, requirePermission('labor_reports', 'view'),(req, res) => {
   const report = db.getById('labor_reports', req.params.id);
   if (!report) return res.status(404).json({ error: '勞報單不存在' });
 
@@ -109,7 +109,7 @@ router.get('/:id', auth, (req, res) => {
 });
 
 // POST /api/labor-reports — 新增勞報單
-router.post('/', auth, (req, res) => {
+router.post('/', auth, requirePermission('labor_reports', 'create'),(req, res) => {
   const { type, event_name, event_date, event_case_name, project_id,
     permission_group, workers: workersList } = req.body;
 
@@ -175,7 +175,7 @@ router.post('/', auth, (req, res) => {
 });
 
 // PUT /api/labor-reports/:id — 更新勞報單（主表）
-router.put('/:id', auth, (req, res) => {
+router.put('/:id', auth, requirePermission('labor_reports', 'edit'),(req, res) => {
   const report = db.getById('labor_reports', req.params.id);
   if (!report) return res.status(404).json({ error: '勞報單不存在' });
   if (report.is_closed) return res.status(403).json({ error: '勞報單已結案，無法編輯' });
@@ -199,7 +199,7 @@ router.put('/:id', auth, (req, res) => {
 });
 
 // DELETE /api/labor-reports/:id
-router.delete('/:id', auth, (req, res) => {
+router.delete('/:id', auth, requirePermission('labor_reports', 'delete'),(req, res) => {
   const report = db.getById('labor_reports', req.params.id);
   if (!report) return res.status(404).json({ error: '勞報單不存在' });
   if (report.is_closed) return res.status(403).json({ error: '勞報單已結案，無法刪除' });
@@ -215,14 +215,14 @@ router.delete('/:id', auth, (req, res) => {
 /* ── 工作人員子表格 CRUD ── */
 
 // GET /api/labor-reports/:id/workers
-router.get('/:id/workers', auth, (req, res) => {
+router.get('/:id/workers', auth, requirePermission('labor_reports', 'view'),(req, res) => {
   const workers = db.find('labor_report_workers', w => w.report_id === req.params.id)
     .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   res.json(workers);
 });
 
 // POST /api/labor-reports/:id/workers — 新增一位工作人員
-router.post('/:id/workers', auth, (req, res) => {
+router.post('/:id/workers', auth, requirePermission('labor_reports', 'create'),(req, res) => {
   const report = db.getById('labor_reports', req.params.id);
   if (!report) return res.status(404).json({ error: '勞報單不存在' });
   if (report.is_closed) return res.status(403).json({ error: '勞報單已結案' });
@@ -268,7 +268,7 @@ router.post('/:id/workers', auth, (req, res) => {
 });
 
 // PUT /api/labor-reports/workers/:workerId — 更新工作人員明細
-router.put('/workers/:workerId', auth, (req, res) => {
+router.put('/workers/:workerId', auth, requirePermission('labor_reports', 'edit'),(req, res) => {
   const entry = db.getById('labor_report_workers', req.params.workerId);
   if (!entry) return res.status(404).json({ error: '不存在' });
 
@@ -288,7 +288,7 @@ router.put('/workers/:workerId', auth, (req, res) => {
 });
 
 // DELETE /api/labor-reports/workers/:workerId — 刪除工作人員明細
-router.delete('/workers/:workerId', auth, (req, res) => {
+router.delete('/workers/:workerId', auth, requirePermission('labor_reports', 'delete'),(req, res) => {
   const entry = db.getById('labor_report_workers', req.params.workerId);
   if (!entry) return res.status(404).json({ error: '不存在' });
   db.remove('labor_report_workers', req.params.workerId);
@@ -299,7 +299,7 @@ router.delete('/workers/:workerId', auth, (req, res) => {
 /* ── 特殊操作 ── */
 
 // PUT /api/labor-reports/:id/close — 結案
-router.put('/:id/close', auth, (req, res) => {
+router.put('/:id/close', auth, requirePermission('labor_reports', 'edit'),(req, res) => {
   const report = db.getById('labor_reports', req.params.id);
   if (!report) return res.status(404).json({ error: '勞報單不存在' });
   const updated = db.update('labor_reports', req.params.id, {
@@ -312,7 +312,7 @@ router.put('/:id/close', auth, (req, res) => {
 });
 
 // PUT /api/labor-reports/:id/reopen — 重開
-router.put('/:id/reopen', auth, (req, res) => {
+router.put('/:id/reopen', auth, requirePermission('labor_reports', 'edit'),(req, res) => {
   const report = db.getById('labor_reports', req.params.id);
   if (!report) return res.status(404).json({ error: '勞報單不存在' });
   const updated = db.update('labor_reports', req.params.id, {
@@ -323,7 +323,7 @@ router.put('/:id/reopen', auth, (req, res) => {
 });
 
 // GET /api/labor-reports/:id/tax-calc — 稅額計算預覽
-router.get('/:id/tax-calc', auth, (req, res) => {
+router.get('/:id/tax-calc', auth, requirePermission('labor_reports', 'view'),(req, res) => {
   const workers = db.find('labor_report_workers', w => w.report_id === req.params.id);
   const details = workers.map(w => ({
     name: w.name,
@@ -362,7 +362,7 @@ const CSS = `
   @media print { body { padding:20px; } }
 `;
 
-router.get('/:id/pdf', auth, (req, res) => {
+router.get('/:id/pdf', auth, requirePermission('labor_reports', 'view'),(req, res) => {
   const report = db.getById('labor_reports', req.params.id);
   if (!report) return res.status(404).json({ error: '勞報單不存在' });
   const workers = db.find('labor_report_workers', w => w.report_id === report.id)
@@ -379,7 +379,7 @@ router.get('/:id/pdf', auth, (req, res) => {
     <tbody>${workers.map((w, i) => `<tr><td>${i + 1}</td><td>${w.name}</td><td>${w.id_number || '-'}</td><td>${w.phone || '-'}</td><td>$${(w.gross_amount || 0).toLocaleString()}</td><td>$${(w.tax_withheld || 0).toLocaleString()}</td><td>$${(w.nhi_withheld || 0).toLocaleString()}</td><td>$${(w.net_amount || 0).toLocaleString()}</td><td>${w.cash_received_date || '-'}</td></tr>`).join('')}
     <tr class="total-row"><td colspan="4" style="text-align:right">合計</td><td>$${workers.reduce((s, w) => s + (w.gross_amount || 0), 0).toLocaleString()}</td><td>$${workers.reduce((s, w) => s + (w.tax_withheld || 0), 0).toLocaleString()}</td><td>$${workers.reduce((s, w) => s + (w.nhi_withheld || 0), 0).toLocaleString()}</td><td>$${workers.reduce((s, w) => s + (w.net_amount || 0), 0).toLocaleString()}</td><td></td></tr></tbody></table>
     <div class="sign-area"><div class="sign-box"><div class="sign-line">製表人</div></div><div class="sign-box"><div class="sign-line">主管核准</div></div><div class="sign-box"><div class="sign-line">會計</div></div></div>
-    <div class="footer">此勞報單由 WDMC ERP 系統生成 · ${new Date().toLocaleDateString('zh-TW')}</div>
+    <div class="footer">此勞報單由 WDMC管理中心 系統生成 · ${new Date().toLocaleDateString('zh-TW')}</div>
     <script>window.print()</script></body></html>`);
 });
 

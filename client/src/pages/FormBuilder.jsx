@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
+import { useLang } from '../LangContext'
 import { useSearchParams } from 'react-router-dom'
 import { api } from '../api'
 import FormDesigner from '../components/form-builder/FormDesigner'
 import FormRenderer from '../components/form-builder/FormRenderer'
 
 export default function FormBuilder() {
+  const { t } = useLang();
   const [searchParams] = useSearchParams();
   const [view, setView] = useState('list'); // list | design | records | fill
   const [schemas, setSchemas] = useState([]);
@@ -117,7 +119,7 @@ export default function FormBuilder() {
 
   /* ═══ List View ═══ */
   if (view === 'list') return (<>
-    <div className="page-header"><div><h1 className="page-title">📋 自訂表單</h1><p className="page-subtitle">表單建構器 · 像 Ragic 一樣拖拉設計表單</p></div></div>
+    <div className="page-header"><div><h1 className="page-title">{t('page.formBuilder')}</h1><p className="page-subtitle">表單建構器 · 像 Ragic 一樣拖拉設計表單</p></div></div>
 
     <div style={{ display: 'flex', gap: 16 }}>
       {/* 左：資料夾 */}
@@ -150,7 +152,7 @@ export default function FormBuilder() {
         {schemas.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 60, color: 'var(--c-text-muted)' }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
-            <p>尚無表單</p><p style={{ fontSize: 12 }}>點擊「✨ 新建表單」開始設計</p>
+            <p>{t('formBuilder.empty')}</p><p style={{ fontSize: 12 }}>點擊「✨ 新建表單」開始設計</p>
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>

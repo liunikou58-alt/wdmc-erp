@@ -11,13 +11,13 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
-const { auth } = require('../middleware/auth');
+const { auth, requirePermission } = require('../middleware/auth');
 const router = express.Router();
 
 /* ═══ 活動損益表 CRUD ═══ */
 
 // GET /api/profit-loss — 列表
-router.get('/', auth, (req, res) => {
+router.get('/', auth, requirePermission('profit_loss', 'view'),(req, res) => {
   const { status, type, search, view } = req.query;
   let items = db.getAll('profit_loss');
   if (status && status !== 'all') items = items.filter(i => i.is_closed === (status === 'closed'));
@@ -56,7 +56,7 @@ router.get('/', auth, (req, res) => {
 });
 
 // GET /api/profit-loss/stats — KPI 統計
-router.get('/stats', auth, (req, res) => {
+router.get('/stats', auth, requirePermission('profit_loss', 'view'),(req, res) => {
   const items = db.getAll('profit_loss');
   const details = db.getAll('profit_loss_details');
   const totalQuote = items.reduce((s, i) => s + (i.quote_amount || 0), 0);
@@ -80,7 +80,7 @@ router.get('/stats', auth, (req, res) => {
 });
 
 // GET /api/profit-loss/:id — 單筆含明細
-router.get('/:id', auth, (req, res) => {
+router.get('/:id', auth, requirePermission('profit_loss', 'view'),(req, res) => {
   const pl = db.getById('profit_loss', req.params.id);
   if (!pl) return res.status(404).json({ error: '找不到此損益表' });
   const details = db.find('profit_loss_details', d => d.profit_loss_id === pl.id);
@@ -89,7 +89,7 @@ router.get('/:id', auth, (req, res) => {
 });
 
 // POST /api/profit-loss — 新增
-router.post('/', auth, (req, res) => {
+router.post('/', auth, requirePermission('profit_loss', 'create'),(req, res) => {
   const id = uuidv4();
   const pl = db.insert('profit_loss', {
     id,
@@ -102,14 +102,14 @@ router.post('/', auth, (req, res) => {
 });
 
 // PUT /api/profit-loss/:id — 更新
-router.put('/:id', auth, (req, res) => {
+router.put('/:id', auth, requirePermission('profit_loss', 'edit'),(req, res) => {
   const updated = db.update('profit_loss', req.params.id, req.body);
   if (!updated) return res.status(404).json({ error: '找不到此損益表' });
   res.json(updated);
 });
 
 // DELETE /api/profit-loss/:id
-router.delete('/:id', auth, (req, res) => {
+router.delete('/:id', auth, requirePermission('profit_loss', 'delete'),(req, res) => {
   // 刪除子表
   db.removeWhere('profit_loss_details', d => d.profit_loss_id === req.params.id);
   db.removeWhere('profit_loss_sub_details', d => d.profit_loss_id === req.params.id);
@@ -119,11 +119,11 @@ router.delete('/:id', auth, (req, res) => {
 
 /* ═══ 執行明細 CRUD ═══ */
 
-router.get('/:id/details', auth, (req, res) => {
+router.get('/:id/details', auth, requirePermission('profit_loss', 'view'),(req, res) => {
   res.json(db.find('profit_loss_details', d => d.profit_loss_id === req.params.id));
 });
 
-router.post('/:id/details', auth, (req, res) => {
+router.post('/:id/details', auth, requirePermission('profit_loss', 'create'),(req, res) => {
   const detail = db.insert('profit_loss_details', {
     id: uuidv4(),
     profit_loss_id: req.params.id,
@@ -132,11 +132,11 @@ router.post('/:id/details', auth, (req, res) => {
   res.status(201).json(detail);
 });
 
-router.put('/details/:detailId', auth, (req, res) => {
+router.put('/details/:detailId', auth, requirePermission('profit_loss', 'edit'),(req, res) => {
   res.json(db.update('profit_loss_details', req.params.detailId, req.body));
 });
 
-router.delete('/details/:detailId', auth, (req, res) => {
+router.delete('/details/:detailId', auth, requirePermission('profit_loss', 'delete'),(req, res) => {
   db.remove('profit_loss_details', req.params.detailId);
   res.json({ success: true });
 });
@@ -145,7 +145,7 @@ router.delete('/details/:detailId', auth, (req, res) => {
 
 // POST /api/profit-loss/link/from-proposal/:proposalId
 // 從報價單自動建立損益表
-router.post('/link/from-proposal/:proposalId', auth, (req, res) => {
+router.post('/link/from-proposal/:proposalId', auth, requirePermission('profit_loss', 'create'),(req, res) => {
   const proposal = db.getById('proposals', req.params.proposalId);
   if (!proposal) return res.status(404).json({ error: '報價單不存在' });
 
@@ -185,7 +185,7 @@ router.post('/link/from-proposal/:proposalId', auth, (req, res) => {
 });
 
 // POST /api/profit-loss/:id/link/labor — 匯入勞報成本
-router.post('/:id/link/labor', auth, (req, res) => {
+router.post('/:id/link/labor', auth, requirePermission('profit_loss', 'create'),(req, res) => {
   const pl = db.getById('profit_loss', req.params.id);
   if (!pl) return res.status(404).json({ error: '損益表不存在' });
 
@@ -203,7 +203,7 @@ router.post('/:id/link/labor', auth, (req, res) => {
 });
 
 // POST /api/profit-loss/:id/link/purchase — 匯入採購成本
-router.post('/:id/link/purchase', auth, (req, res) => {
+router.post('/:id/link/purchase', auth, requirePermission('profit_loss', 'create'),(req, res) => {
   const pl = db.getById('profit_loss', req.params.id);
   if (!pl) return res.status(404).json({ error: '損益表不存在' });
 

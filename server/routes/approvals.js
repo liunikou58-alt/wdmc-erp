@@ -10,7 +10,7 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
-const { auth, logActivity } = require('../middleware/auth');
+const { auth, logActivity, requirePermission } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -27,7 +27,7 @@ const STATUS_LABELS = {
 };
 
 // GET /api/approvals — 審批列表
-router.get('/', auth, (req, res) => {
+router.get('/', auth, requirePermission('approvals', 'view'),(req, res) => {
   const { status, my_pending } = req.query;
   let approvals = db.getAll('approvals');
 
@@ -53,7 +53,7 @@ router.get('/', auth, (req, res) => {
 });
 
 // GET /api/approvals/stats — 統計
-router.get('/stats', auth, (req, res) => {
+router.get('/stats', auth, requirePermission('approvals', 'view'),(req, res) => {
   const all = db.getAll('approvals');
   res.json({
     total: all.length,
@@ -65,7 +65,7 @@ router.get('/stats', auth, (req, res) => {
 });
 
 // POST /api/approvals — 提交審批
-router.post('/', auth, (req, res) => {
+router.post('/', auth, requirePermission('approvals', 'create'),(req, res) => {
   const { type, title, description, amount, project_id, entity_type, entity_id, attachments } = req.body;
   if (!title || !type) return res.status(400).json({ error: '缺少審批類型或標題' });
 
@@ -96,7 +96,7 @@ router.post('/', auth, (req, res) => {
 });
 
 // PUT /api/approvals/:id/approve — 核准
-router.put('/:id/approve', auth, (req, res) => {
+router.put('/:id/approve', auth, requirePermission('approvals', 'approve'),(req, res) => {
   const approval = db.getById('approvals', req.params.id);
   if (!approval) return res.status(404).json({ error: '審批不存在' });
 
@@ -131,7 +131,7 @@ router.put('/:id/approve', auth, (req, res) => {
 });
 
 // PUT /api/approvals/:id/reject — 退回
-router.put('/:id/reject', auth, (req, res) => {
+router.put('/:id/reject', auth, requirePermission('approvals', 'edit'),(req, res) => {
   const approval = db.getById('approvals', req.params.id);
   if (!approval) return res.status(404).json({ error: '審批不存在' });
 

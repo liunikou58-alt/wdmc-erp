@@ -1,11 +1,11 @@
 const express = require('express');
 const db = require('../db');
-const { auth } = require('../middleware/auth');
+const { auth, requirePermission } = require('../middleware/auth');
 
 const router = express.Router();
 
 // GET /api/bi/overview — 營運總覽
-router.get('/overview', auth, (req, res) => {
+router.get('/overview', auth, requirePermission('bi', 'view'),(req, res) => {
   const projects = db.getAll('projects');
   const customers = db.getAll('customers');
   const revenues = db.getAll('revenues');
@@ -26,7 +26,7 @@ router.get('/overview', auth, (req, res) => {
 });
 
 // GET /api/bi/project-analysis — 專案分析
-router.get('/project-analysis', auth, (req, res) => {
+router.get('/project-analysis', auth, requirePermission('bi', 'view'),(req, res) => {
   const projects = db.getAll('projects');
   const byStatus = {};
   projects.forEach(p => { byStatus[p.status] = (byStatus[p.status] || 0) + 1; });
@@ -46,7 +46,7 @@ router.get('/project-analysis', auth, (req, res) => {
 });
 
 // GET /api/bi/customer-analysis — 客戶分析
-router.get('/customer-analysis', auth, (req, res) => {
+router.get('/customer-analysis', auth, requirePermission('bi', 'view'),(req, res) => {
   const customers = db.getAll('customers');
   const customerDetails = customers.map(c => {
     const projects = db.find('projects', p => p.customer_id === c.id);
@@ -57,7 +57,7 @@ router.get('/customer-analysis', auth, (req, res) => {
 });
 
 // GET /api/bi/revenue-analysis — 收入分析（按月）
-router.get('/revenue-analysis', auth, (req, res) => {
+router.get('/revenue-analysis', auth, requirePermission('bi', 'view'),(req, res) => {
   const revenues = db.getAll('revenues');
   const expenses = db.getAll('expenses');
   const monthly = {};
@@ -78,7 +78,7 @@ router.get('/revenue-analysis', auth, (req, res) => {
 });
 
 // GET /api/bi/department-analysis — 部門績效
-router.get('/department-analysis', auth, (req, res) => {
+router.get('/department-analysis', auth, requirePermission('bi', 'view'),(req, res) => {
   const departments = db.getAll('departments');
   const tasks = db.getAll('project_tasks');
 

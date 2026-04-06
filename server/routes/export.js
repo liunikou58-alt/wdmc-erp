@@ -10,11 +10,11 @@
  */
 const express = require('express');
 const db = require('../db');
-const { auth } = require('../middleware/auth');
+const { auth, requirePermission } = require('../middleware/auth');
 const router = express.Router();
 
 // GET /api/export/payroll — 薪資清冊
-router.get('/payroll', auth, (req, res) => {
+router.get('/payroll', auth, requirePermission('reports', 'view'),(req, res) => {
   const { event_name, date_from, date_to } = req.query;
   let workers = db.getAll('labor_report_workers');
   if (event_name) workers = workers.filter(w => (w.event_name || '').includes(event_name));
@@ -38,7 +38,7 @@ router.get('/payroll', auth, (req, res) => {
 });
 
 // GET /api/export/profit-loss — 活動損益報表
-router.get('/profit-loss', auth, (req, res) => {
+router.get('/profit-loss', auth, requirePermission('reports', 'view'),(req, res) => {
   const items = db.getAll('profit_loss');
   const csv = [
     ['編號','活動名稱','類型','負責人','客戶','活動日期','報價金額','結案金額','訂金','訂金狀態','尾款','尾款狀態','發票號碼','發票狀態','是否結案'].join(','),
@@ -57,7 +57,7 @@ router.get('/profit-loss', auth, (req, res) => {
 });
 
 // GET /api/export/profit-loss/:id/details — 單一活動損益明細
-router.get('/profit-loss/:id/details', auth, (req, res) => {
+router.get('/profit-loss/:id/details', auth, requirePermission('reports', 'view'),(req, res) => {
   const pl = db.getById('profit_loss', req.params.id);
   const details = db.find('profit_loss_details', d => d.profit_loss_id === req.params.id);
   const csv = [
@@ -76,7 +76,7 @@ router.get('/profit-loss/:id/details', auth, (req, res) => {
 });
 
 // GET /api/export/proposal/:id — 報價單明細
-router.get('/proposal/:id', auth, (req, res) => {
+router.get('/proposal/:id', auth, requirePermission('reports', 'view'),(req, res) => {
   const p = db.getById('proposals', req.params.id);
   const items = db.find('proposal_items', i => i.proposal_id === req.params.id);
   const csv = [
@@ -93,7 +93,7 @@ router.get('/proposal/:id', auth, (req, res) => {
 });
 
 // GET /api/export/labor — 勞報單匯出
-router.get('/labor', auth, (req, res) => {
+router.get('/labor', auth, requirePermission('reports', 'view'),(req, res) => {
   const reports = db.getAll('labor_reports');
   const workers = db.getAll('labor_report_workers');
   const csv = [
@@ -114,7 +114,7 @@ router.get('/labor', auth, (req, res) => {
 });
 
 // GET /api/export/vendor-settlement — 月結廠商對帳
-router.get('/vendor-settlement', auth, (req, res) => {
+router.get('/vendor-settlement', auth, requirePermission('reports', 'view'),(req, res) => {
   const pos = db.getAll('purchase_orders');
   const vendors = db.getAll('vendors');
   const csv = [

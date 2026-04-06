@@ -6,7 +6,7 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
-const { auth, logActivity } = require('../middleware/auth');
+const { auth, logActivity, requirePermission } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -19,12 +19,12 @@ function genPO() {
 }
 
 // === CRUD ===
-router.get('/', auth, (req, res) => {
+router.get('/', auth, requirePermission('purchase_orders', 'view'),(req, res) => {
   const list = db.getAll('purchase_orders').sort((a,b) => (b.created_at||'').localeCompare(a.created_at||''));
   res.json(list);
 });
 
-router.get('/stats', auth, (req, res) => {
+router.get('/stats', auth, requirePermission('purchase_orders', 'view'),(req, res) => {
   const all = db.getAll('purchase_orders');
   res.json({
     total: all.length,
@@ -35,9 +35,34 @@ router.get('/stats', auth, (req, res) => {
   });
 });
 
-router.post('/', auth, (req, res) => {
+router.post('/', auth, requirePermission('purchase_orders', 'create'),(req, res) => {
   const subtotal = Number(req.body.subtotal || 0);
   const taxRate = Number(req.body.tax_rate || 0);
+
+  // 嚴格流程鎖定 (State Machine Locking)
+  if (req.body.project_id) {
+    const project = db.getById('projects', req.body.project_id);
+    if (project && project.design_approved !== true) {
+      return res.status(403).json({ error: '流程鎖定：該專案的前期設計尚未獲得核准，目前禁止建立採購單發包硬體！' });
+    }
+    // 預算超支阻擋防呆 (Budget Overspend Prevention)
+    if (project && project.budget > 0) {
+      const existingPOs = db.find('purchase_orders', p => p.project_id === req.body.project_id && p.status !== '已取消');
+      const spentAmount = existingPOs.reduce((sum, p) => sum + (p.total || 0), 0);
+      const newTotal = Math.round(subtotal * (1 + taxRate));
+      const remaining = project.budget - spentAmount;
+      if (spentAmount + newTotal > project.budget) {
+        return res.status(403).json({
+          error: `⚠️ 預算超支！此專案預算為 $${project.budget.toLocaleString()}，已發包 $${spentAmount.toLocaleString()}，剩餘 $${remaining.toLocaleString()}。本次採購 $${newTotal.toLocaleString()} 將超出預算 $${(spentAmount + newTotal - project.budget).toLocaleString()}。請重新議價或由主管特批。`,
+          budget: project.budget,
+          spent: spentAmount,
+          remaining,
+          requested: newTotal,
+          overspend: spentAmount + newTotal - project.budget,
+        });
+      }
+    }
+  }
   const po = db.insert('purchase_orders', {
     id: uuidv4(), po_no: genPO(),
     ...req.body,
@@ -50,23 +75,23 @@ router.post('/', auth, (req, res) => {
   res.status(201).json(po);
 });
 
-router.put('/:id', auth, (req, res) => {
+router.put('/:id', auth, requirePermission('purchase_orders', 'edit'),(req, res) => {
   const po = db.update('purchase_orders', req.params.id, req.body);
   if (!po) return res.status(404).json({ error: '找不到' });
   res.json(po);
 });
 
-router.delete('/:id', auth, (req, res) => {
+router.delete('/:id', auth, requirePermission('purchase_orders', 'delete'),(req, res) => {
   db.remove('purchase_orders', req.params.id);
   res.json({ ok: true });
 });
 
 // === 明細 ===
-router.get('/:id/items', auth, (req, res) => {
+router.get('/:id/items', auth, requirePermission('purchase_orders', 'view'),(req, res) => {
   res.json(db.find('purchase_order_items', i => i.po_id === req.params.id));
 });
 
-router.post('/:id/items', auth, (req, res) => {
+router.post('/:id/items', auth, requirePermission('purchase_orders', 'create'),(req, res) => {
   const item = db.insert('purchase_order_items', {
     id: uuidv4(), po_id: req.params.id,
     ...req.body,
@@ -83,13 +108,13 @@ router.post('/:id/items', auth, (req, res) => {
   res.status(201).json(item);
 });
 
-router.delete('/:poId/items/:itemId', auth, (req, res) => {
+router.delete('/:poId/items/:itemId', auth, requirePermission('purchase_orders', 'delete'),(req, res) => {
   db.remove('purchase_order_items', req.params.itemId);
   res.json({ ok: true });
 });
 
 // === 拋轉請付款 ===
-router.post('/:id/to-payment', auth, (req, res) => {
+router.post('/:id/to-payment', auth, requirePermission('purchase_orders', 'create'),(req, res) => {
   const po = db.getById('purchase_orders', req.params.id);
   if (!po) return res.status(404).json({ error: '找不到' });
   const payment = db.insert('payments', {
@@ -107,7 +132,7 @@ router.post('/:id/to-payment', auth, (req, res) => {
 });
 
 // === 連結損益 ===
-router.post('/:id/to-pl', auth, (req, res) => {
+router.post('/:id/to-pl', auth, requirePermission('purchase_orders', 'create'),(req, res) => {
   const po = db.getById('purchase_orders', req.params.id);
   if (!po) return res.status(404).json({ error: '找不到' });
   const pls = db.getAll('profit_loss');
@@ -124,11 +149,11 @@ router.post('/:id/to-pl', auth, (req, res) => {
 });
 
 // === 保證金 ===
-router.get('/deposits', auth, (req, res) => {
+router.get('/deposits', auth, requirePermission('purchase_orders', 'view'),(req, res) => {
   res.json(db.getAll('po_deposits').sort((a,b) => (b.created_at||'').localeCompare(a.created_at||'')));
 });
 
-router.post('/deposits', auth, (req, res) => {
+router.post('/deposits', auth, requirePermission('purchase_orders', 'create'),(req, res) => {
   const dep = db.insert('po_deposits', { id: uuidv4(), ...req.body });
   res.status(201).json(dep);
 });

@@ -12,6 +12,9 @@ async function request(url, options = {}) {
 }
 
 export const api = {
+  // Generic
+  get: (url) => request(url.replace('/api', '')),
+  
   // Auth
   getUsers: () => request('/auth/users'),
   createUser: (d) => request('/auth/users', { method: 'POST', body: JSON.stringify(d) }),
@@ -23,13 +26,15 @@ export const api = {
   getActivities: () => request('/auth/activities'),
 
   // Customers
-  getCustomers: () => request('/customers'),
+  getCustomers: (params) => request('/customers' + (params ? '?' + new URLSearchParams(params) : '')),
+  getCustomerStats: () => request('/customers/stats'),
   getCustomer: (id) => request(`/customers/${id}`),
   createCustomer: (d) => request('/customers', { method: 'POST', body: JSON.stringify(d) }),
   updateCustomer: (id, d) => request(`/customers/${id}`, { method: 'PUT', body: JSON.stringify(d) }),
   deleteCustomer: (id) => request(`/customers/${id}`, { method: 'DELETE' }),
   getCases: (cid) => request(`/customers/${cid}/cases`),
   createCase: (cid, d) => request(`/customers/${cid}/cases`, { method: 'POST', body: JSON.stringify(d) }),
+  getCustomerYearlyStats: (cid, year) => request(`/customers/${cid}/yearly-stats?year=${year}`),
 
   // Projects
   getProjects: () => request('/projects'),
@@ -41,6 +46,9 @@ export const api = {
   createProjectTask: (pid, d) => request(`/projects/${pid}/tasks`, { method: 'POST', body: JSON.stringify(d) }),
   updateProjectTask: (pid, tid, d) => request(`/projects/${pid}/tasks/${tid}`, { method: 'PUT', body: JSON.stringify(d) }),
   deleteProjectTask: (pid, tid) => request(`/projects/${pid}/tasks/${tid}`, { method: 'DELETE' }),
+  getBudgetItems: (pid) => request(`/projects/${pid}/budget-items`),
+  createBudgetItem: (pid, d) => request(`/projects/${pid}/budget-items`, { method: 'POST', body: JSON.stringify(d) }),
+  deleteBudgetItem: (pid, itemId) => request(`/projects/${pid}/budget-items/${itemId}`, { method: 'DELETE' }),
 
   // Proposals
   getProposals: () => request('/proposals'),
@@ -87,7 +95,8 @@ export const api = {
   deleteAsset: (id) => request(`/assets/${id}`, { method: 'DELETE' }),
 
   // Contracts
-  getContracts: () => request('/contracts'),
+  getContracts: (params) => request('/contracts' + (params ? '?' + new URLSearchParams(params) : '')),
+  getContractStats: () => request('/contracts/stats'),
   createContract: (d) => request('/contracts', { method: 'POST', body: JSON.stringify(d) }),
   updateContract: (id, d) => request(`/contracts/${id}`, { method: 'PUT', body: JSON.stringify(d) }),
   deleteContract: (id) => request(`/contracts/${id}`, { method: 'DELETE' }),
@@ -297,4 +306,42 @@ export const api = {
   // ═══ 流程觸發 ═══
   proposalToAll: (id) => request(`/proposals/${id}/to-all`, { method: 'POST' }),
   updatePayment: (id, d) => request(`/payments/${id}`, { method: 'PUT', body: JSON.stringify(d) }),
+
+  // ═══ 收支日記帳 ═══
+  getJournal: (params) => request('/journal' + (params ? '?' + new URLSearchParams(params) : '')),
+  getJournalStats: (params) => request('/journal/stats' + (params ? '?' + new URLSearchParams(params) : '')),
+  createJournal: (d) => request('/journal', { method: 'POST', body: JSON.stringify(d) }),
+  updateJournal: (id, d) => request(`/journal/${id}`, { method: 'PUT', body: JSON.stringify(d) }),
+  deleteJournal: (id) => request(`/journal/${id}`, { method: 'DELETE' }),
+
+  // ═══ 活動管理 ═══
+  getEvents: (params) => request('/events' + (params ? '?' + new URLSearchParams(params) : '')),
+  getEventStats: () => request('/events/stats'),
+  getEvent: (id) => request(`/events/${id}`),
+  createEvent: (d) => request('/events', { method: 'POST', body: JSON.stringify(d) }),
+  updateEvent: (id, d) => request(`/events/${id}`, { method: 'PUT', body: JSON.stringify(d) }),
+  closeEvent: (id) => request(`/events/${id}/close`, { method: 'PUT' }),
+  deleteEvent: (id) => request(`/events/${id}`, { method: 'DELETE' }),
+  getSubEvents: (parentId) => request(`/events?parent_id=${parentId}`),
+
+  // ═══ 活動款項 ═══
+  getEventPayments: (eventId) => request(`/events/${eventId}/payments`),
+  createEventPayment: (eventId, d) => request(`/events/${eventId}/payments`, { method: 'POST', body: JSON.stringify(d) }),
+  updateEventPayment: (eventId, payId, d) => request(`/events/${eventId}/payments/${payId}`, { method: 'PUT', body: JSON.stringify(d) }),
+  deleteEventPayment: (eventId, payId) => request(`/events/${eventId}/payments/${payId}`, { method: 'DELETE' }),
+
+  // ═══ 活動 Rundown 時間軸 ═══
+  getEventRundown: (eventId) => request(`/events/${eventId}/rundown`),
+  createRundownItem: (eventId, d) => request(`/events/${eventId}/rundown`, { method: 'POST', body: JSON.stringify(d) }),
+  updateRundownItem: (eventId, itemId, d) => request(`/events/${eventId}/rundown/${itemId}`, { method: 'PUT', body: JSON.stringify(d) }),
+  deleteRundownItem: (eventId, itemId) => request(`/events/${eventId}/rundown/${itemId}`, { method: 'DELETE' }),
+
+  // ═══ 活動出演人員 ═══
+  getEventPerformers: (eventId) => request(`/events/${eventId}/performers`),
+  createPerformer: (eventId, d) => request(`/events/${eventId}/performers`, { method: 'POST', body: JSON.stringify(d) }),
+  updatePerformer: (eventId, itemId, d) => request(`/events/${eventId}/performers/${itemId}`, { method: 'PUT', body: JSON.stringify(d) }),
+  deletePerformer: (eventId, itemId) => request(`/events/${eventId}/performers/${itemId}`, { method: 'DELETE' }),
+
+  // ═══ 報價單 PDF ═══  
+  printProposalPDF: (id) => window.open(`/api/reports/quotation/${id}`, '_blank'),
 };

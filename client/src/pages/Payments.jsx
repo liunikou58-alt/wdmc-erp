@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useLang } from '../LangContext'
 import { api } from '../api'
 
 const FMT = n => `$${Number(n || 0).toLocaleString()}`;
@@ -14,16 +15,17 @@ const CURRENCIES = ['新台幣', '人民幣', '美金'];
 
 // 4-stage approval
 const STAGES = [
-  { key: 'submitted', label: '📝 已提交', color: '#dbeafe', text: '#1d4ed8' },
-  { key: 'manager_approved', label: '👔 主管已核', color: '#fef3c7', text: '#92400e' },
-  { key: 'accountant_approved', label: '🧮 會計已核', color: '#ede9fe', text: '#7c3aed' },
-  { key: 'paid', label: '✅ 已付款', color: '#dcfce7', text: '#166534' },
-  { key: 'rejected', label: '❌ 退回', color: '#fee2e2', text: '#991b1b' },
+  { key: 'submitted', label: '📝 已提交', color: 'var(--c-info-light)', text: 'var(--c-info)' },
+  { key: 'manager_approved', label: '👔 主管已核', color: 'var(--c-warning-light)', text: 'var(--c-warning)' },
+  { key: 'accountant_approved', label: '🧮 會計已核', color: 'var(--c-primary-light)', text: 'var(--c-primary)' },
+  { key: 'paid', label: '✅ 已付款', color: 'var(--c-success-light)', text: 'var(--c-success)' },
+  { key: 'rejected', label: '❌ 退回', color: 'var(--c-danger-light)', text: 'var(--c-danger)' },
 ];
 const STAGE_MAP = {};
 STAGES.forEach(s => STAGE_MAP[s.key] = s);
 
 export default function Payments() {
+  const { t } = useLang();
   const [tab, setTab] = useState('event');
   const [payments, setPayments] = useState([]);
   const [proofs, setProofs] = useState([]);
@@ -99,7 +101,7 @@ export default function Payments() {
 
   return (<>
     <div className="page-header">
-      <div><h1 className="page-title">💰 請付款 / 零用金</h1><p className="page-subtitle">多階段簽核: 申請→主管→會計→付款 | 發票追蹤 | 匯款資訊</p></div>
+      <div><h1 className="page-title">{t('page.payments')}</h1><p className="page-subtitle">多階段簽核: 申請→主管→會計→付款 | 發票追蹤 | 匯款資訊</p></div>
       <div style={{ display: 'flex', gap: 6 }}>
         <button className="btn btn-primary" onClick={() => { setShowAdd(true); setForm({}); }}>➕ 新增</button>
         <a href={api.exportVendorSettlement()} target="_blank" rel="noreferrer" className="btn">📊 月結對帳</a>
@@ -110,9 +112,9 @@ export default function Payments() {
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 16 }}>
       {[
         { label: '總申請', value: stats.total || 0, icon: '📋' },
-        { label: '待審核', value: stats.pending || 0, icon: '⏳', color: '#f59e0b' },
-        { label: '已付款', value: stats.paid || 0, icon: '✅', color: '#10b981' },
-        { label: '待付金額', value: FMT(stats.pending_amount), icon: '💸', color: '#ef4444' },
+        { label: '待審核', value: stats.pending || 0, icon: '⏳', color: 'var(--c-warning)' },
+        { label: '已付款', value: stats.paid || 0, icon: '✅', color: 'var(--c-success)' },
+        { label: '待付金額', value: FMT(stats.pending_amount), icon: '💸', color: 'var(--c-danger)' },
         { label: '已付金額', value: FMT(stats.paid_amount), icon: '🏦' },
       ].map((k, i) => (
         <div key={i} className="stat-card"><div className="stat-label">{k.icon} {k.label}</div><div className="stat-value" style={{ color: k.color, fontSize: 16 }}>{k.value}</div></div>
@@ -155,7 +157,7 @@ export default function Payments() {
                 <td style={TD}>{p.vendor_name || p.payee_name || p.reporter_name || '—'}</td>
                 <td style={{...TD, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{p.reason || p.purpose || '—'}</td>
                 <td style={{...TD, textAlign:'right'}}>{FMT(p.amount)}</td>
-                <td style={{...TD, textAlign:'right', color:'#f59e0b'}}>{FMT(p.tax_amount)}</td>
+                <td style={{...TD, textAlign:'right', color:'var(--c-warning)'}}>{FMT(p.tax_amount)}</td>
                 <td style={{...TD, textAlign:'right', fontWeight:700}}>{FMT(p.total_with_tax || p.amount)}</td>
                 <td style={TD}><span style={{ padding: '2px 8px', borderRadius: 6, fontSize: 10, background: stage.color, color: stage.text, fontWeight: 600 }}>{stage.label}</span></td>
                 <td style={TD}>{p.payment_method || '—'}</td>
@@ -194,7 +196,7 @@ export default function Payments() {
                 <div key={s} style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
                   <div style={{
                     flex: 1, padding: '6px 4px', borderRadius: 6, fontSize: 10, fontWeight: 600, textAlign: 'center',
-                    background: active ? stage.color : '#f1f5f9',
+                    background: active ? stage.color : 'var(--c-bg-elevated)',
                     color: active ? stage.text : '#94a3b8',
                   }}>{stage.label}</div>
                   {i < 3 && <div style={{ width: 16, textAlign: 'center', fontSize: 10, color: '#94a3b8' }}>→</div>}
@@ -207,7 +209,7 @@ export default function Payments() {
               <button className="btn btn-sm btn-primary" onClick={() => advanceStage(selected)}>✅ 核准 (下一步)</button>
             )}
             {selected.status === 'submitted' && (
-              <button className="btn btn-sm" onClick={() => rejectPayment(selected)} style={{ color: '#ef4444' }}>❌ 退回</button>
+              <button className="btn btn-sm" onClick={() => rejectPayment(selected)} style={{ color: 'var(--c-danger)' }}>❌ 退回</button>
             )}
           </div>
         </div>
@@ -223,7 +225,7 @@ export default function Payments() {
             <div>申請人: <b>{selected.applicant_name || '—'}</b></div>
             <div>申請日期: <b>{(selected.created_at || '').slice(0,10)}</b></div>
             <div>預計匯款: <b>{selected.expected_pay_date || '—'}</b></div>
-            <div>實際匯款: <b style={{ color: selected.actual_pay_date ? '#10b981' : '#f59e0b' }}>{selected.actual_pay_date || '未付'}</b></div>
+            <div>實際匯款: <b style={{ color: selected.actual_pay_date ? 'var(--c-success)' : 'var(--c-warning)' }}>{selected.actual_pay_date || '未付'}</b></div>
           </div>
         </div>
 
@@ -231,10 +233,10 @@ export default function Payments() {
         <div className="card" style={{ padding: 14, marginBottom: 14 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, fontSize: 12 }}>
             <div>小計:</div><div style={{ textAlign: 'right', fontWeight: 600 }}>{FMT(selected.amount)}</div>
-            <div>稅金:</div><div style={{ textAlign: 'right', color: '#f59e0b' }}>{FMT(selected.tax_amount)}</div>
+            <div>稅金:</div><div style={{ textAlign: 'right', color: 'var(--c-warning)' }}>{FMT(selected.tax_amount)}</div>
             <div style={{ fontWeight: 700, fontSize: 14 }}>總計:</div><div style={{ textAlign: 'right', fontWeight: 700, fontSize: 14 }}>{FMT(selected.total_with_tax || selected.amount)}</div>
             {selected.deposit_amount > 0 && <>
-              <div>押金/保證金:</div><div style={{ textAlign: 'right', color: '#6366f1' }}>{FMT(selected.deposit_amount)}</div>
+              <div>押金/保證金:</div><div style={{ textAlign: 'right', color: 'var(--c-primary)' }}>{FMT(selected.deposit_amount)}</div>
             </>}
           </div>
         </div>
@@ -287,7 +289,7 @@ export default function Payments() {
               )}
             </div>
           ))}
-          <div style={{ fontSize: 12, padding: 8, background: '#f0fdf4', borderRadius: 6, marginBottom: 10 }}>
+          <div style={{ fontSize: 12, padding: 8, background: 'var(--c-success-light)', borderRadius: 6, marginBottom: 10 }}>
             稅金 (5%): <b>{FMT(Math.round((Number(form.amount) || 0) * 0.05))}</b> | 
             總計: <b>{FMT(Math.round((Number(form.amount) || 0) * 1.05))}</b>
           </div>

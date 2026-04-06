@@ -1,12 +1,12 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
-const { auth, logActivity } = require('../middleware/auth');
+const { auth, logActivity, requirePermission } = require('../middleware/auth');
 
 const router = express.Router();
 
 // GET /api/schedules — 排班總覽
-router.get('/', auth, (req, res) => {
+router.get('/', auth, requirePermission('schedules', 'view'),(req, res) => {
   const { start_date, end_date, user_id, department_id } = req.query;
   let schedules = db.getAll('schedules');
 
@@ -26,7 +26,7 @@ router.get('/', auth, (req, res) => {
 });
 
 // GET /api/schedules/conflicts — 衝突檢查
-router.get('/conflicts', auth, (req, res) => {
+router.get('/conflicts', auth, requirePermission('schedules', 'view'),(req, res) => {
   const schedules = db.getAll('schedules');
   const conflicts = [];
   for (let i = 0; i < schedules.length; i++) {
@@ -42,7 +42,7 @@ router.get('/conflicts', auth, (req, res) => {
 });
 
 // GET /api/schedules/availability — 人員可用性
-router.get('/availability', auth, (req, res) => {
+router.get('/availability', auth, requirePermission('schedules', 'view'),(req, res) => {
   const { date } = req.query;
   if (!date) return res.status(400).json({ error: '缺少日期' });
   const users = db.getAll('users').filter(u => u.is_active);
@@ -55,7 +55,7 @@ router.get('/availability', auth, (req, res) => {
 });
 
 // POST /api/schedules
-router.post('/', auth, (req, res) => {
+router.post('/', auth, requirePermission('schedules', 'create'),(req, res) => {
   const { user_id, project_id, department_id, title, start_date, end_date, shift, location, notes } = req.body;
   if (!user_id || !start_date) return res.status(400).json({ error: '缺少人員或日期' });
 
@@ -78,13 +78,13 @@ router.post('/', auth, (req, res) => {
 });
 
 // PUT /api/schedules/:id
-router.put('/:id', auth, (req, res) => {
+router.put('/:id', auth, requirePermission('schedules', 'edit'),(req, res) => {
   const updated = db.update('schedules', req.params.id, req.body);
   res.json(updated);
 });
 
 // DELETE /api/schedules/:id
-router.delete('/:id', auth, (req, res) => {
+router.delete('/:id', auth, requirePermission('schedules', 'delete'),(req, res) => {
   db.remove('schedules', req.params.id);
   res.json({ success: true });
 });

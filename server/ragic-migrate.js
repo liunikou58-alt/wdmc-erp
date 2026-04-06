@@ -1,5 +1,5 @@
 /**
- * Ragic → WDMC ERP 快速遷移（結構 + 每表 10 筆範例）
+ * Ragic → WDMC管理中心 快速遷移（結構 + 每表 10 筆範例）
  * 直接批次寫入 JSON，跳過 db adapter 的逐筆 I/O
  */
 const { v4: uuidv4 } = require('uuid');
@@ -82,7 +82,7 @@ function safeName(n) {
 function main() {
   const start = Date.now();
   console.log('╔══════════════════════════════════════════╗');
-  console.log('║  Ragic → WDMC ERP 快速遷移 (10筆/表)     ║');
+  console.log('║  Ragic → WDMC管理中心 快速遷移 (10筆/表)     ║');
   console.log('╚══════════════════════════════════════════╝\n');
 
   const ragicSchemas = JSON.parse(fs.readFileSync(SCHEMA_FILE, 'utf8'));

@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
+import { useLang } from '../LangContext'
 import { api } from '../api'
 
 const STATUS = { false: { l: '進行中', c: 'badge-info' }, true: { l: '已結案', c: 'badge-success' } };
 
 export default function LaborReports() {
+  const { t } = useLang();
   const [tab, setTab] = useState('reports');
   const [reports, setReports] = useState([]);
   const [workers, setWorkers] = useState([]);
@@ -78,7 +80,7 @@ export default function LaborReports() {
   const GROUPS = ['X-企劃', 'X-音響', 'X-燈光', 'X-視訊', 'X-管理', 'X-財務'];
 
   return (<>
-    <div className="page-header"><div><h1 className="page-title">📝 勞報單管理</h1><p className="page-subtitle">勞務報酬單填報 · 工作人員主檔</p></div></div>
+    <div className="page-header"><div><h1 className="page-title">{t('page.labor')}</h1><p className="page-subtitle">勞務報酬單填報 · 工作人員主檔</p></div></div>
 
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
       <div className="stat-card"><div className="stat-icon" style={{ background: 'var(--c-primary-light)' }}>📝</div><div><div className="stat-value">{stats.total_reports || 0}</div><div className="stat-label">總勞報單數</div></div></div>
@@ -96,7 +98,7 @@ export default function LaborReports() {
     {/* ═══ 勞報單列表 ═══ */}
     {tab === 'reports' && (<>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 12 }}>
-        <button className="btn btn-primary" onClick={() => setShowAdd(true)}>➕ 新增勞報單</button>
+        <button className="btn btn-primary" onClick={() => setShowAdd(true)}>{t('labor.add')}</button>
       </div>
 
       {showAdd && (

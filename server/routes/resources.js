@@ -7,12 +7,12 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
-const { auth } = require('../middleware/auth');
+const { auth, requirePermission } = require('../middleware/auth');
 
 const router = express.Router();
 
 // GET /api/resources?type=performer|artist|vendor|market
-router.get('/', auth, (req, res) => {
+router.get('/', auth, requirePermission('resources', 'view'),(req, res) => {
   const { type, q } = req.query;
   let items = db.getAll('resources');
   if (type) items = items.filter(r => r.type === type);
@@ -27,13 +27,13 @@ router.get('/', auth, (req, res) => {
   res.json(items.sort((a, b) => (a.name || '').localeCompare(b.name, 'zh-TW')));
 });
 
-router.get('/:id', auth, (req, res) => {
+router.get('/:id', auth, requirePermission('resources', 'view'),(req, res) => {
   const item = db.getById('resources', req.params.id);
   if (!item) return res.status(404).json({ error: '不存在' });
   res.json(item);
 });
 
-router.post('/', auth, (req, res) => {
+router.post('/', auth, requirePermission('resources', 'create'),(req, res) => {
   const { type, name, resource_type, contact_person, phone, email,
     agency, fee, fee_range, demo_url, past_events, food_type,
     business_license, health_cert, booth_fee, revenue_sharing,
@@ -61,19 +61,19 @@ router.post('/', auth, (req, res) => {
   res.status(201).json(item);
 });
 
-router.put('/:id', auth, (req, res) => {
+router.put('/:id', auth, requirePermission('resources', 'edit'),(req, res) => {
   const updated = db.update('resources', req.params.id, req.body);
   if (!updated) return res.status(404).json({ error: '不存在' });
   res.json(updated);
 });
 
-router.delete('/:id', auth, (req, res) => {
+router.delete('/:id', auth, requirePermission('resources', 'delete'),(req, res) => {
   db.remove('resources', req.params.id);
   res.json({ success: true });
 });
 
 // GET /api/resources/stats
-router.get('/stats/summary', auth, (req, res) => {
+router.get('/stats/summary', auth, requirePermission('resources', 'view'),(req, res) => {
   const all = db.getAll('resources');
   res.json({
     total: all.length,

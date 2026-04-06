@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useLang } from '../LangContext'
 import { api } from '../api'
 
 const FMT = n => `${Number(n || 0).toLocaleString()}`;
@@ -11,6 +12,7 @@ const TABS = [
 const MV_STATUS = { completed: '✅ 已完成', pending: '⏳ 待處理' };
 
 export default function Inventory() {
+  const { t } = useLang();
   const [tab, setTab] = useState('items');
   const [items, setItems] = useState([]);
   const [movements, setMovements] = useState([]);
@@ -94,7 +96,7 @@ export default function Inventory() {
 
   return (<>
     <div className="page-header">
-      <div><h1 className="page-title">🗳️ 物品管理</h1><p className="page-subtitle">主檔 · 出入庫 · 盤點 · 進貨 — 全流程管理</p></div>
+      <div><h1 className="page-title">{t('page.inventory')}</h1><p className="page-subtitle">主檔 · 出入庫 · 盤點 · 進貨 — 全流程管理</p></div>
       <button className="btn btn-primary" onClick={() => { setShowAdd(true); setForm({}); }}>
         {tab === 'items' ? '➕ 新增物品' : tab === 'movements' ? '📦 出庫/入庫' : tab === 'counts' ? '📋 新增盤點' : '🚛 新增進貨'}
       </button>
@@ -136,11 +138,11 @@ export default function Inventory() {
           <tbody>{items.map(it => (
             <tr key={it.id} style={{ borderBottom: '1px solid var(--c-border)' }}>
               <td style={{...TD, fontWeight: 600}}>{it.name || '—'}</td>
-              <td style={TD}><span style={{ padding: '1px 6px', borderRadius: 4, fontSize: 10, background: '#f1f5f9' }}>{it.category || '—'}</span></td>
+              <td style={TD}><span style={{ padding: '1px 6px', borderRadius: 4, fontSize: 10, background: 'var(--c-bg-elevated)' }}>{it.category || '—'}</span></td>
               <td style={TD}>{it.unit || '個'}</td>
               <td style={{...TD, textAlign:'right', fontWeight: 600}}>{it.quantity || 0}</td>
-              <td style={{...TD, textAlign:'right', color: (it.available_qty || 0) <= 0 ? '#ef4444' : '#10b981'}}>{it.available_qty || 0}</td>
-              <td style={TD}><span style={{ fontSize: 10, fontWeight: 600, color: it.status === 'available' ? '#10b981' : '#f59e0b' }}>{it.status === 'available' ? '🟢 可用' : '🟡 使用中'}</span></td>
+              <td style={{...TD, textAlign:'right', color: (it.available_qty || 0) <= 0 ? 'var(--c-danger)' : 'var(--c-success)'}}>{it.available_qty || 0}</td>
+              <td style={TD}><span style={{ fontSize: 10, fontWeight: 600, color: it.status === 'available' ? 'var(--c-success)' : 'var(--c-warning)' }}>{it.status === 'available' ? '🟢 可用' : '🟡 使用中'}</span></td>
             </tr>
           ))}</tbody>
         </table>
@@ -160,8 +162,8 @@ export default function Inventory() {
             <tr key={m.id} style={{ borderBottom: '1px solid var(--c-border)', cursor: 'pointer' }} onClick={() => setSelected(m)}>
               <td style={TD}><span style={{ fontFamily: 'monospace', fontSize: 10, color: 'var(--c-primary)' }}>{m.movement_no}</span></td>
               <td style={TD}><span style={{ padding: '2px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600,
-                background: m.type === 'out' ? '#fee2e2' : '#dcfce7',
-                color: m.type === 'out' ? '#991b1b' : '#166534',
+                background: m.type === 'out' ? 'var(--c-danger-light)' : 'var(--c-success-light)',
+                color: m.type === 'out' ? 'var(--c-danger)' : 'var(--c-success)',
               }}>{m.type === 'out' ? '📤 出庫' : '📥 入庫'}</span></td>
               <td style={TD}>{m.movement_date}</td>
               <td style={TD}>{m.project_name || '—'}</td>
@@ -189,8 +191,8 @@ export default function Inventory() {
               <td style={TD}>{c.counted_by_name || '—'}</td>
               <td style={{...TD, textAlign:'right'}}>{c.item_count || 0}</td>
               <td style={TD}><span style={{ padding: '2px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600,
-                background: c.status === 'completed' ? '#dcfce7' : '#fef3c7',
-                color: c.status === 'completed' ? '#166534' : '#92400e',
+                background: c.status === 'completed' ? 'var(--c-success-light)' : 'var(--c-warning-light)',
+                color: c.status === 'completed' ? 'var(--c-success)' : 'var(--c-warning)',
               }}>{c.status === 'completed' ? '✅ 已完成' : '🔄 進行中'}</span></td>
             </tr>
           ))}</tbody>
@@ -213,7 +215,7 @@ export default function Inventory() {
               <td style={TD}>{r.receipt_date}</td>
               <td style={TD}>{r.vendor_name || '—'}</td>
               <td style={{...TD, textAlign:'right', fontWeight: 600}}>${FMT(r.total_amount)}</td>
-              <td style={TD}><span style={{ fontSize: 10, fontWeight: 600, color: r.inspection_status === 'passed' ? '#10b981' : '#f59e0b' }}>
+              <td style={TD}><span style={{ fontSize: 10, fontWeight: 600, color: r.inspection_status === 'passed' ? 'var(--c-success)' : 'var(--c-warning)' }}>
                 {r.inspection_status === 'passed' ? '✅ 已驗收' : '⏳ 待驗收'}
               </span></td>
             </tr>

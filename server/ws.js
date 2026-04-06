@@ -38,7 +38,7 @@ function init(server) {
     });
 
     // 歡迎訊息
-    ws.send(JSON.stringify({ type: 'connected', message: '已連線到 WDMC ERP 即時通知', timestamp: new Date().toISOString() }));
+    ws.send(JSON.stringify({ type: 'connected', message: '已連線到 WDMC管理中心 即時通知', timestamp: new Date().toISOString() }));
   });
 
   // 心跳檢查 30 秒

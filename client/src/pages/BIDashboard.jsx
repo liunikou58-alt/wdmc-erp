@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
+import { useLang } from '../LangContext'
 import { api } from '../api'
 
 const STATUS_LABELS = { planning: '規劃中', in_progress: '執行中', completed: '已結案', cancelled: '已取消' };
-const STATUS_COLORS = { planning: '#0891b2', in_progress: '#4f46e5', completed: '#16a34a', cancelled: '#dc2626' };
+const STATUS_COLORS = { planning: 'var(--c-info)', in_progress: 'var(--c-primary)', completed: 'var(--c-success)', cancelled: 'var(--c-danger)' };
 
 export default function BIDashboard() {
+  const { t } = useLang();
   const [overview, setOverview] = useState(null);
   const [projectData, setProjectData] = useState(null);
   const [customerData, setCustomerData] = useState([]);
@@ -25,7 +27,7 @@ export default function BIDashboard() {
 
   return (
     <>
-      <div className="page-header"><div><h1 className="page-title">📊 營運分析 BI</h1><p className="page-subtitle">數據驅動的營運決策分析</p></div></div>
+      <div className="page-header"><div><h1 className="page-title">{t('page.bi')}</h1><p className="page-subtitle">數據驅動的營運決策分析</p></div></div>
 
       {/* KPI 概覽 */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14, marginBottom: 28 }}>
@@ -55,7 +57,7 @@ export default function BIDashboard() {
             <div key={status} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
               <span style={{ fontSize: 12, width: 60 }}>{STATUS_LABELS[status] || status}</span>
               <div style={{ flex: 1, height: 24, background: 'var(--c-bg)', borderRadius: 6, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${(count / (overview.projects.total || 1)) * 100}%`, background: STATUS_COLORS[status] || '#6366f1', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 8, color: 'white', fontSize: 11, fontWeight: 700, minWidth: 30 }}>{count}</div>
+                <div style={{ height: '100%', width: `${(count / (overview.projects.total || 1)) * 100}%`, background: STATUS_COLORS[status] || 'var(--c-primary)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 8, color: 'white', fontSize: 11, fontWeight: 700, minWidth: 30 }}>{count}</div>
               </div>
             </div>
           ))}
